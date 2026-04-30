@@ -3,10 +3,11 @@ import { Link } from 'react-router-dom';
 import {
   BookOpen,
   Building2, Hammer, Receipt, FileText, ShieldAlert,
-  Sun, Calendar, ArrowUpRight,
+  Sun, Calendar, ArrowUpRight, Wallet,
 } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import { formatCZK, formatDate, daysFromNow, classNames } from '../utils/format';
+import { calcPayroll, filterEntriesByMonth, formatHours, czMonthLabel } from '../utils/payrollCalc';
 import PageHeader from '../components/PageHeader';
 
 /**
@@ -19,6 +20,7 @@ export default function Today() {
     currentUser, visibleProjects,
     invoices, changeOrders, findings, diaryEntries,
     quotes,
+    employees, timeEntries, bonuses, deductions, payrolls,
     isManager, isOwner, isAccountant,
   } = useApp();
 
@@ -78,6 +80,44 @@ export default function Today() {
   const approvedNotConverted = quotes.filter((q) => q.status === 'approved' && !q.projectId);
 
   const showAlerts = isOwner || isAccountant;
+
+  // Payroll snapshot for this month — only for owner/accountant
+  const payrollSnapshot = useMemo(() => {
+    if (!showAlerts) return null;
+    const now = new Date();
+    const month = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+    let totalEmployerCost = 0;
+    let totalNet = 0;
+    let pendingCount = 0;
+    let paidCount = 0;
+    let totalHours = 0;
+    const active = (employees || []).filter((e) => e.active !== false);
+    active.forEach((emp) => {
+      const ents = filterEntriesByMonth(
+        (timeEntries || []).filter((te) => te.employeeId === emp.id),
+        month
+      );
+      if (ents.length === 0) return;
+      const empBn = (bonuses || []).filter((b) => b.employeeId === emp.id && b.month === month);
+      const empDd = (deductions || []).filter((d) => d.employeeId === emp.id && d.month === month);
+      const calc = calcPayroll({ employee: emp, entries: ents, bonuses: empBn, deductions: empDd });
+      totalEmployerCost += calc.employerCost;
+      totalNet += calc.netSalary;
+      totalHours += calc.wage.totalHours;
+      const pr = (payrolls || []).find((p) => p.employeeId === emp.id && p.month === month);
+      if (pr?.status === 'paid') paidCount += 1;
+      else pendingCount += 1;
+    });
+    return {
+      month,
+      employerCost: totalEmployerCost,
+      net: totalNet,
+      hours: totalHours,
+      pendingCount,
+      paidCount,
+      employeeCount: active.length,
+    };
+  }, [showAlerts, employees, timeEntries, bonuses, deductions, payrolls]);
 
   return (
     <>
@@ -217,6 +257,40 @@ export default function Today() {
               </Link>
             )}
           </div>
+        )}
+
+        {/* ===== Payroll snapshot — owner/accountant only ===== */}
+        {showAlerts && payrollSnapshot && payrollSnapshot.employeeCount > 0 && payrollSnapshot.hours > 0 && (
+          <Link
+            to="/mzdy"
+            className="card card-hover p-4 flex items-center gap-3 group"
+          >
+            <div className="w-11 h-11 rounded-xl bg-ink-900 text-accent-400 flex items-center justify-center flex-shrink-0">
+              <Wallet className="w-5 h-5" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <div className="flex items-baseline gap-2 flex-wrap">
+                <p className="font-semibold text-ink-900">Mzdy — {czMonthLabel(payrollSnapshot.month)}</p>
+                {payrollSnapshot.pendingCount > 0 && (
+                  <span className="text-xs px-2 py-0.5 rounded-full bg-amber-100 text-amber-800 font-semibold">
+                    {payrollSnapshot.pendingCount} čeká
+                  </span>
+                )}
+              </div>
+              <div className="flex items-center gap-3 mt-1 text-sm text-ink-600 flex-wrap">
+                <span className="font-mono tabular-nums">
+                  Náklad firmy <strong className="text-ink-900">{formatCZK(payrollSnapshot.employerCost, { compact: true })}</strong>
+                </span>
+                <span className="text-ink-300">·</span>
+                <span className="font-mono tabular-nums">
+                  K výplatě <strong className="text-ink-900">{formatCZK(payrollSnapshot.net, { compact: true })}</strong>
+                </span>
+                <span className="text-ink-300">·</span>
+                <span className="font-mono tabular-nums">{formatHours(payrollSnapshot.hours)}</span>
+              </div>
+            </div>
+            <ArrowUpRight className="w-5 h-5 text-ink-400 group-hover:text-ink-900 group-hover:-translate-y-0.5 group-hover:translate-x-0.5 transition-all flex-shrink-0" />
+          </Link>
         )}
 
         {/* ===== Projects today — primary content ===== */}

@@ -7,6 +7,11 @@ const COLOR_CLASSES = {
   emerald: 'bg-emerald-50 text-emerald-700 border-emerald-200',
   red:     'bg-red-50 text-red-700 border-red-200',
   purple:  'bg-purple-50 text-purple-700 border-purple-200',
+  orange:  'bg-orange-50 text-orange-700 border-orange-200',
+  cyan:    'bg-cyan-50 text-cyan-700 border-cyan-200',
+  yellow:  'bg-yellow-50 text-yellow-700 border-yellow-200',
+  indigo:  'bg-indigo-50 text-indigo-700 border-indigo-200',
+  pink:    'bg-pink-50 text-pink-700 border-pink-200',
 };
 
 const SOLID_COLOR_CLASSES = {
@@ -16,6 +21,11 @@ const SOLID_COLOR_CLASSES = {
   emerald: 'bg-emerald-600 text-white',
   red:     'bg-red-600 text-white',
   purple:  'bg-purple-600 text-white',
+  orange:  'bg-orange-600 text-white',
+  cyan:    'bg-cyan-600 text-white',
+  yellow:  'bg-yellow-500 text-ink-900',
+  indigo:  'bg-indigo-600 text-white',
+  pink:    'bg-pink-600 text-white',
 };
 
 export default function Badge({ color = 'slate', solid = false, children, className = '', icon: Icon }) {

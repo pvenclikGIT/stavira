@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { Link } from 'react-router-dom';
 import {
   Calendar, MapPin, Receipt, FileText, BookOpen,
   Check, X as XIcon, Building2, Hammer,
@@ -74,13 +75,9 @@ export default function ClientHome() {
 
       <div className="px-4 md:px-8 py-5 max-w-3xl mx-auto space-y-5">
 
-        {/* Pending quote alert — needs decision */}
+        {/* Pending quote alert — clickable to full quote view */}
         {pendingQuote && (
-          <ClientQuoteAlert
-            quote={pendingQuote}
-            onApprove={() => updateQuote(pendingQuote.id, { status: 'approved', decidedDate: new Date().toISOString().slice(0,10) })}
-            onReject={() => updateQuote(pendingQuote.id, { status: 'rejected', decidedDate: new Date().toISOString().slice(0,10) })}
-          />
+          <ClientQuoteAlert quote={pendingQuote} />
         )}
 
         {/* ===== HERO: Project status ===== */}
@@ -403,8 +400,7 @@ function ChangeOrderApprovalCard({ changeOrder, onDecide }) {
 // =====================================================================
 // Quote-only client view (received quote but no project yet)
 // =====================================================================
-function ClientQuoteOnly({ user, quotes, updateQuote }) {
-  const todayStr = () => new Date().toISOString().slice(0, 10);
+function ClientQuoteOnly({ user, quotes }) {
   const greeting = (() => {
     const h = new Date().getHours();
     if (h < 11) return 'Dobré ráno';
@@ -419,75 +415,58 @@ function ClientQuoteOnly({ user, quotes, updateQuote }) {
         title={`${greeting}, ${user?.name?.split(' ')[0] || ''}`}
         subtitle="Vaše cenové nabídky."
       />
-      <div className="px-4 md:px-8 py-5 max-w-3xl mx-auto space-y-4">
+      <div className="px-4 md:px-8 py-5 max-w-3xl mx-auto space-y-3">
         {sortedQuotes.map((quote) => {
-          const subtotal = (quote.lines || []).reduce(
-            (s, l) => s + (Number(l.quantity) || 0) * (Number(l.unitPrice) || 0), 0
-          );
-          const total = Math.round(subtotal * (1 + (Number(quote.marginPercent) || 0) / 100));
+          const lines = quote.lines || [];
+          const subMat = lines.filter((l) => l.type === 'material').reduce((s, l) => s + (Number(l.quantity)||0)*(Number(l.unitPrice)||0), 0);
+          const subWork = lines.filter((l) => l.type === 'work').reduce((s, l) => s + (Number(l.quantity)||0)*(Number(l.unitPrice)||0), 0);
+          const subOther = lines.filter((l) => l.type === 'other').reduce((s, l) => s + (Number(l.quantity)||0)*(Number(l.unitPrice)||0), 0);
+          const fb = Number(quote.marginPercent) || 0;
+          const rMat = quote.marginPercentMaterial != null ? Number(quote.marginPercentMaterial) : fb;
+          const rLab = quote.marginPercentLabor != null ? Number(quote.marginPercentLabor) : fb;
+          const total = Math.round(subMat * (1 + rMat/100) + subWork * (1 + rLab/100) + subOther * (1 + rMat/100));
           const isPending = quote.status === 'sent';
           return (
-            <div key={quote.id} className="card overflow-hidden">
-              <div className="p-5">
-                <div className="flex items-start justify-between gap-3 mb-3">
-                  <div className="min-w-0">
-                    <p className="font-mono text-[10px] uppercase tracking-wider text-ink-500 font-semibold">
-                      {quote.number}
-                    </p>
-                    <h3 className="font-display text-lg font-bold text-ink-900 mt-0.5 leading-tight">
-                      {quote.title}
-                    </h3>
-                  </div>
-                  <Badge color={QUOTE_STATUSES[quote.status]?.color || 'slate'}>
-                    {QUOTE_STATUSES[quote.status]?.label}
-                  </Badge>
+            <Link
+              key={quote.id}
+              to={`/nabidky/${quote.id}`}
+              className="card card-hover overflow-hidden block group"
+            >
+              <div className="p-5 flex items-start gap-3">
+                <div className="w-11 h-11 rounded-xl bg-accent-100 text-accent-700 flex items-center justify-center flex-shrink-0">
+                  <FileText className="w-5 h-5" />
                 </div>
-                {quote.description && (
-                  <p className="text-sm text-ink-700 mb-3 leading-relaxed">{quote.description}</p>
-                )}
-                <div className="grid grid-cols-2 gap-3 text-sm">
-                  <div>
-                    <p className="text-[10px] uppercase tracking-wider font-semibold text-ink-500">Adresa</p>
-                    <p className="text-ink-900 mt-0.5">{quote.address}</p>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 mb-1 flex-wrap">
+                    <span className="font-mono text-[10px] uppercase tracking-wider text-ink-500 font-semibold">
+                      {quote.number}
+                    </span>
+                    <Badge color={QUOTE_STATUSES[quote.status]?.color || 'slate'}>
+                      {QUOTE_STATUSES[quote.status]?.label}
+                    </Badge>
                   </div>
-                  {quote.validUntil && (
-                    <div>
-                      <p className="text-[10px] uppercase tracking-wider font-semibold text-ink-500">Platí do</p>
-                      <p className="text-ink-900 mt-0.5 font-mono tabular-nums">{formatDate(quote.validUntil)}</p>
-                    </div>
+                  <h3 className="font-display text-base font-bold text-ink-900 leading-tight">
+                    {quote.title}
+                  </h3>
+                  <p className="font-display text-2xl font-extrabold tabular-nums text-ink-900 mt-2">
+                    {formatCZK(total)}
+                  </p>
+                  {isPending && quote.validUntil && (
+                    <p className="text-xs text-ink-500 mt-1 inline-flex items-center gap-1">
+                      <Calendar className="w-3 h-3" />
+                      Platí do {formatDate(quote.validUntil)}
+                    </p>
                   )}
                 </div>
-              </div>
-              <div className="p-5 bg-ink-900 text-white">
-                <p className="text-[10px] uppercase tracking-wider font-bold text-accent-400 mb-1">
-                  Celková cena
-                </p>
-                <p className="font-display text-3xl font-extrabold tabular-nums">{formatCZK(total)}</p>
-                {quote.note && (
-                  <p className="text-xs text-ink-300 mt-3 italic">{quote.note}</p>
-                )}
+                <ChevronRight className="w-5 h-5 text-ink-400 group-hover:text-ink-900 group-hover:translate-x-0.5 transition-all flex-shrink-0 mt-2" />
               </div>
               {isPending && (
-                <div className="p-4 grid grid-cols-2 gap-2 border-t border-ink-100">
-                  <button
-                    type="button"
-                    onClick={() => updateQuote(quote.id, { status: 'rejected', decidedDate: todayStr() })}
-                    className="btn btn-lg btn-outline border-red-300 text-red-700 hover:bg-red-50"
-                  >
-                    <XIcon className="w-5 h-5" />
-                    Zamítnout
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => updateQuote(quote.id, { status: 'approved', decidedDate: todayStr() })}
-                    className="btn btn-lg bg-emerald-600 hover:bg-emerald-700 text-white border-emerald-600"
-                  >
-                    <Check className="w-5 h-5" />
-                    Schválit
-                  </button>
+                <div className="px-5 py-3 bg-accent-50 border-t border-accent-200 text-xs font-semibold text-accent-800 inline-flex items-center gap-2 w-full">
+                  <ChevronRight className="w-3 h-3" />
+                  Klepněte pro zobrazení detailu a rozhodnutí
                 </div>
               )}
-            </div>
+            </Link>
           );
         })}
       </div>
@@ -498,26 +477,33 @@ function ClientQuoteOnly({ user, quotes, updateQuote }) {
 // =====================================================================
 // Pending quote alert (used inside main client view)
 // =====================================================================
-function ClientQuoteAlert({ quote, onApprove, onReject }) {
-  const subtotal = (quote.lines || []).reduce(
-    (s, l) => s + (Number(l.quantity) || 0) * (Number(l.unitPrice) || 0), 0
-  );
-  const total = Math.round(subtotal * (1 + (Number(quote.marginPercent) || 0) / 100));
+function ClientQuoteAlert({ quote }) {
+  // Use proper calc with dual margins
+  const lines = quote.lines || [];
+  const subMat = lines.filter((l) => l.type === 'material').reduce((s, l) => s + (Number(l.quantity)||0)*(Number(l.unitPrice)||0), 0);
+  const subWork = lines.filter((l) => l.type === 'work').reduce((s, l) => s + (Number(l.quantity)||0)*(Number(l.unitPrice)||0), 0);
+  const subOther = lines.filter((l) => l.type === 'other').reduce((s, l) => s + (Number(l.quantity)||0)*(Number(l.unitPrice)||0), 0);
+  const fb = Number(quote.marginPercent) || 0;
+  const rMat = quote.marginPercentMaterial != null ? Number(quote.marginPercentMaterial) : fb;
+  const rLab = quote.marginPercentLabor != null ? Number(quote.marginPercentLabor) : fb;
+  const total = Math.round(subMat * (1 + rMat/100) + subWork * (1 + rLab/100) + subOther * (1 + rMat/100));
+
   return (
-    <div className="card overflow-hidden border-l-4 border-accent-400">
+    <Link to={`/nabidky/${quote.id}`} className="card card-hover overflow-hidden border-l-4 border-accent-400 group block">
       <div className="p-4 md:p-5">
-        <div className="flex items-start gap-3 mb-3">
+        <div className="flex items-start gap-3">
           <div className="w-11 h-11 rounded-xl bg-accent-100 text-accent-700 flex items-center justify-center flex-shrink-0">
             <FileText className="w-5 h-5" />
           </div>
           <div className="flex-1 min-w-0">
-            <p className="font-mono text-[10px] uppercase tracking-wider text-ink-500 font-semibold">
-              Nabídka {quote.number}
+            <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-accent-700 font-bold">
+              Nová nabídka čeká na vás
             </p>
-            <p className="font-display text-base font-bold text-ink-900 leading-tight mt-0.5">
+            <p className="font-display text-base font-bold text-ink-900 leading-tight mt-1">
               {quote.title}
             </p>
-            <p className="font-display text-2xl font-extrabold tabular-nums text-ink-900 mt-2">
+            <p className="text-xs text-ink-500 mt-0.5 font-mono">{quote.number}</p>
+            <p className="font-display text-2xl font-extrabold tabular-nums text-ink-900 mt-3">
               {formatCZK(total)}
             </p>
             {quote.validUntil && (
@@ -529,24 +515,10 @@ function ClientQuoteAlert({ quote, onApprove, onReject }) {
           </div>
         </div>
       </div>
-      <div className="px-4 pb-4 grid grid-cols-2 gap-2">
-        <button
-          type="button"
-          onClick={onReject}
-          className="btn btn-lg btn-outline border-red-300 text-red-700 hover:bg-red-50"
-        >
-          <XIcon className="w-5 h-5" />
-          Zamítnout
-        </button>
-        <button
-          type="button"
-          onClick={onApprove}
-          className="btn btn-lg bg-emerald-600 hover:bg-emerald-700 text-white border-emerald-600"
-        >
-          <Check className="w-5 h-5" />
-          Schválit
-        </button>
+      <div className="px-4 py-3 bg-ink-900 text-white text-sm font-semibold flex items-center justify-between group-hover:bg-ink-800 transition-colors">
+        <span>Zobrazit detail nabídky</span>
+        <ChevronRight className="w-4 h-4" />
       </div>
-    </div>
+    </Link>
   );
 }

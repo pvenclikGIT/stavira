@@ -6,11 +6,15 @@ import {
   initialDiaryEntries, initialQuotes, initialMaterials,
   STAGES_BY_TYPE,
 } from '../data/seed';
+import {
+  initialEmployees, initialTimeEntries,
+  initialBonuses, initialDeductions, initialPayrolls,
+} from '../data/payrollSeed';
 import { generateId, todayISO } from '../utils/format';
 
 const AppContext = createContext(null);
 
-const STORAGE_VERSION = 4; // bumped — added quotes + materials catalog
+const STORAGE_VERSION = 6; // bumped — added payroll (employees, time entries, payrolls)
 const KEY = (name) => `stavira:v${STORAGE_VERSION}:${name}`;
 
 // One-shot cleanup of stale storage from older app versions.
@@ -46,6 +50,11 @@ export function AppProvider({ children }) {
   const [diaryEntries, setDiaryEntries] = useLocalStorage(KEY('diary'),        initialDiaryEntries);
   const [quotes, setQuotes]             = useLocalStorage(KEY('quotes'),       initialQuotes);
   const [materials, setMaterials]       = useLocalStorage(KEY('materials'),    initialMaterials);
+  const [employees, setEmployees]       = useLocalStorage(KEY('employees'),    initialEmployees);
+  const [timeEntries, setTimeEntries]   = useLocalStorage(KEY('timeEntries'),  initialTimeEntries);
+  const [bonuses, setBonuses]           = useLocalStorage(KEY('bonuses'),      initialBonuses);
+  const [deductions, setDeductions]     = useLocalStorage(KEY('deductions'),   initialDeductions);
+  const [payrolls, setPayrolls]         = useLocalStorage(KEY('payrolls'),     initialPayrolls);
   const [currentUserId, setCurrentUserId] = useLocalStorage(KEY('currentUser'), null);
 
   const currentUser = useMemo(
@@ -335,18 +344,22 @@ export function AppProvider({ children }) {
       sentDate: null,
       decidedDate: null,
       validUntil: '',
-      marginPercent: 18,
-      laborMarginPercent: 0,
+      marginPercent: 18,            // legacy fallback
+      marginPercentMaterial: 15,
+      marginPercentLabor: 25,
       lines: [],
       note: '',
       type: 'novostavba',
       ...data,
+      updatedAt: new Date().toISOString(),
     };
     setQuotes((prev) => [newQuote, ...prev]);
     return newQuote;
   }, [quotes.length, setQuotes]);
   const updateQuote = useCallback((id, patch) => {
-    setQuotes((prev) => prev.map((q) => (q.id === id ? { ...q, ...patch } : q)));
+    setQuotes((prev) => prev.map((q) => (
+      q.id === id ? { ...q, ...patch, updatedAt: new Date().toISOString() } : q
+    )));
   }, [setQuotes]);
   const deleteQuote = useCallback((id) => {
     setQuotes((prev) => prev.filter((q) => q.id !== id));
@@ -356,41 +369,117 @@ export function AppProvider({ children }) {
   const addQuoteLine = useCallback((quoteId, line) => {
     setQuotes((prev) => prev.map((q) => {
       if (q.id !== quoteId) return q;
-      const newLine = { id: generateId('l'), type: 'material', quantity: 1, unitPrice: 0, note: '', ...line };
-      return { ...q, lines: [...(q.lines || []), newLine] };
+      const newLine = { id: generateId('l'), type: 'material', quantity: 1, unitPrice: 0, note: '', sectionTitle: null, ...line };
+      return { ...q, lines: [...(q.lines || []), newLine], updatedAt: new Date().toISOString() };
+    }));
+  }, [setQuotes]);
+  // Bulk add — used by material picker for hromadné přidání
+  const addQuoteLines = useCallback((quoteId, newLines) => {
+    setQuotes((prev) => prev.map((q) => {
+      if (q.id !== quoteId) return q;
+      const stamped = newLines.map((line) => ({
+        id: generateId('l'), type: 'material', quantity: 1, unitPrice: 0, note: '', sectionTitle: null, ...line,
+      }));
+      return { ...q, lines: [...(q.lines || []), ...stamped], updatedAt: new Date().toISOString() };
     }));
   }, [setQuotes]);
   const updateQuoteLine = useCallback((quoteId, lineId, patch) => {
     setQuotes((prev) => prev.map((q) => {
       if (q.id !== quoteId) return q;
-      return { ...q, lines: q.lines.map((l) => (l.id === lineId ? { ...l, ...patch } : l)) };
+      return { ...q, lines: q.lines.map((l) => (l.id === lineId ? { ...l, ...patch } : l)), updatedAt: new Date().toISOString() };
     }));
   }, [setQuotes]);
   const deleteQuoteLine = useCallback((quoteId, lineId) => {
     setQuotes((prev) => prev.map((q) => {
       if (q.id !== quoteId) return q;
-      return { ...q, lines: q.lines.filter((l) => l.id !== lineId) };
+      return { ...q, lines: q.lines.filter((l) => l.id !== lineId), updatedAt: new Date().toISOString() };
     }));
   }, [setQuotes]);
+
+  // Apply a template to an existing quote — fills in lines from sections.
+  // Existing lines are PRESERVED (template prepends).
+  const applyQuoteTemplate = useCallback((quoteId, template) => {
+    if (!template || !template.sections) return;
+    setQuotes((prev) => prev.map((q) => {
+      if (q.id !== quoteId) return q;
+      const newLines = [];
+      template.sections.forEach((sec) => {
+        sec.lines.forEach((tplLine) => {
+          let resolved = { ...tplLine, sectionTitle: sec.title };
+          // For material lines, hydrate from catalog
+          if (tplLine.type === 'material' && tplLine.materialId) {
+            const m = materials.find((mm) => mm.id === tplLine.materialId);
+            if (m) {
+              resolved = {
+                ...resolved,
+                name: m.name + (m.packaging ? ` (${m.packaging})` : ''),
+                unit: m.unit,
+                unitPrice: m.priceVAT,
+              };
+            }
+          }
+          newLines.push({ id: generateId('l'), note: '', ...resolved });
+        });
+      });
+      return {
+        ...q,
+        lines: [...newLines, ...(q.lines || [])],
+        updatedAt: new Date().toISOString(),
+      };
+    }));
+  }, [materials, setQuotes]);
 
   // Convert approved quote to a real project
   const convertQuoteToProject = useCallback((quoteId) => {
     const quote = quotes.find((q) => q.id === quoteId);
     if (!quote || quote.projectId) return null;
 
-    // Calculate total budget with margin
-    const subtotal = (quote.lines || []).reduce(
-      (s, l) => s + (Number(l.quantity) || 0) * (Number(l.unitPrice) || 0), 0
+    // Calculate total budget with proper margin (uses dual margins)
+    const lines = quote.lines || [];
+    const subMat = lines.filter((l) => l.type === 'material').reduce((s, l) => s + (Number(l.quantity)||0)*(Number(l.unitPrice)||0), 0);
+    const subWork = lines.filter((l) => l.type === 'work').reduce((s, l) => s + (Number(l.quantity)||0)*(Number(l.unitPrice)||0), 0);
+    const subOther = lines.filter((l) => l.type === 'other').reduce((s, l) => s + (Number(l.quantity)||0)*(Number(l.unitPrice)||0), 0);
+    const fallback = Number(quote.marginPercent) || 0;
+    const rateMat = quote.marginPercentMaterial != null ? Number(quote.marginPercentMaterial) : fallback;
+    const rateLab = quote.marginPercentLabor != null ? Number(quote.marginPercentLabor) : fallback;
+    const total = Math.round(
+      subMat * (1 + rateMat/100) +
+      subWork * (1 + rateLab/100) +
+      subOther * (1 + rateMat/100)
     );
-    const total = Math.round(subtotal * (1 + (Number(quote.marginPercent) || 0) / 100));
 
-    // Build stages from template based on quote type
-    const template = STAGES_BY_TYPE[quote.type] || STAGES_BY_TYPE.novostavba;
-    const stages = template.map((s, i) => ({
-      id: generateId('stg'), key: s.key, label: s.label, description: s.description,
-      order: i, startDate: '', endDate: '', progress: 0,
-      budget: Math.round(total / template.length), actualCost: 0,
-    }));
+    // Build stages: prefer using quote sections if they exist
+    const sectionMap = new Map();
+    lines.forEach((l) => {
+      if (l.sectionTitle) {
+        if (!sectionMap.has(l.sectionTitle)) sectionMap.set(l.sectionTitle, 0);
+        sectionMap.set(l.sectionTitle, sectionMap.get(l.sectionTitle) + (Number(l.quantity)||0)*(Number(l.unitPrice)||0));
+      }
+    });
+
+    let stages;
+    if (sectionMap.size >= 2) {
+      // Use sections from quote as stages — keeps client-facing structure
+      const sectionEntries = Array.from(sectionMap.entries());
+      const sumSections = sectionEntries.reduce((s, [,v]) => s + v, 0) || 1;
+      stages = sectionEntries.map(([title, sub], i) => ({
+        id: generateId('stg'),
+        key: title.toLowerCase().replace(/\s+/g, '_').slice(0, 24),
+        label: title,
+        description: '',
+        order: i, startDate: '', endDate: '', progress: 0,
+        budget: Math.round((sub / sumSections) * total),
+        actualCost: 0,
+      }));
+    } else {
+      // Fall back to standard template
+      const template = STAGES_BY_TYPE[quote.type] || STAGES_BY_TYPE.novostavba;
+      stages = template.map((s, i) => ({
+        id: generateId('stg'), key: s.key, label: s.label, description: s.description,
+        order: i, startDate: '', endDate: '', progress: 0,
+        budget: Math.round(total / template.length), actualCost: 0,
+      }));
+    }
 
     const yearCode = new Date().getFullYear();
     const projectCount = projects.filter((p) => (p.code || '').startsWith(String(yearCode))).length;
@@ -423,6 +512,115 @@ export function AppProvider({ children }) {
     return newProject;
   }, [quotes, projects, setProjects, setQuotes]);
 
+  // ---------- Payroll: Employees ----------
+  const getEmployee = useCallback(
+    (id) => employees.find((e) => e.id === id) || null, [employees]
+  );
+  const addEmployee = useCallback((data) => {
+    const newEmp = {
+      id: generateId('emp'),
+      hourlyRate: 250,
+      contractType: 'hpp',
+      hireDate: todayISO(),
+      hasTaxCredit: true,
+      active: true,
+      avatar: (data.name || '??').split(' ').map((p) => p[0]).join('').slice(0, 2).toUpperCase(),
+      color: 'slate',
+      ...data,
+    };
+    setEmployees((prev) => [newEmp, ...prev]);
+    return newEmp;
+  }, [setEmployees]);
+  const updateEmployee = useCallback((id, patch) => {
+    setEmployees((prev) => prev.map((e) => (e.id === id ? { ...e, ...patch } : e)));
+  }, [setEmployees]);
+  const deleteEmployee = useCallback((id) => {
+    setEmployees((prev) => prev.filter((e) => e.id !== id));
+    setTimeEntries((prev) => prev.filter((te) => te.employeeId !== id));
+    setBonuses((prev) => prev.filter((b) => b.employeeId !== id));
+    setDeductions((prev) => prev.filter((d) => d.employeeId !== id));
+    setPayrolls((prev) => prev.filter((p) => p.employeeId !== id));
+  }, [setEmployees, setTimeEntries, setBonuses, setDeductions, setPayrolls]);
+
+  // ---------- Payroll: Time entries ----------
+  const timeEntriesForEmployee = useCallback(
+    (employeeId) => timeEntries.filter((te) => te.employeeId === employeeId),
+    [timeEntries]
+  );
+  const timeEntriesForProject = useCallback(
+    (projectId) => timeEntries.filter((te) => te.projectId === projectId),
+    [timeEntries]
+  );
+  const addTimeEntry = useCallback((data) => {
+    const newEntry = {
+      id: generateId('te'),
+      shiftType: 'regular',
+      hours: 8,
+      note: '',
+      ...data,
+    };
+    setTimeEntries((prev) => [newEntry, ...prev]);
+    return newEntry;
+  }, [setTimeEntries]);
+  const updateTimeEntry = useCallback((id, patch) => {
+    setTimeEntries((prev) => prev.map((t) => (t.id === id ? { ...t, ...patch } : t)));
+  }, [setTimeEntries]);
+  const deleteTimeEntry = useCallback((id) => {
+    setTimeEntries((prev) => prev.filter((t) => t.id !== id));
+  }, [setTimeEntries]);
+
+  // ---------- Payroll: Bonuses ----------
+  const addBonus = useCallback((data) => {
+    const newBonus = { id: generateId('bn'), type: 'performance', ...data };
+    setBonuses((prev) => [newBonus, ...prev]);
+    return newBonus;
+  }, [setBonuses]);
+  const updateBonus = useCallback((id, patch) => {
+    setBonuses((prev) => prev.map((b) => (b.id === id ? { ...b, ...patch } : b)));
+  }, [setBonuses]);
+  const deleteBonus = useCallback((id) => {
+    setBonuses((prev) => prev.filter((b) => b.id !== id));
+  }, [setBonuses]);
+
+  // ---------- Payroll: Deductions ----------
+  const addDeduction = useCallback((data) => {
+    const newD = { id: generateId('dd'), type: 'advance', ...data };
+    setDeductions((prev) => [newD, ...prev]);
+    return newD;
+  }, [setDeductions]);
+  const updateDeduction = useCallback((id, patch) => {
+    setDeductions((prev) => prev.map((d) => (d.id === id ? { ...d, ...patch } : d)));
+  }, [setDeductions]);
+  const deleteDeduction = useCallback((id) => {
+    setDeductions((prev) => prev.filter((d) => d.id !== id));
+  }, [setDeductions]);
+
+  // ---------- Payroll: Payroll records (monthly) ----------
+  const getPayroll = useCallback(
+    (employeeId, month) => payrolls.find((p) => p.employeeId === employeeId && p.month === month) || null,
+    [payrolls]
+  );
+  const upsertPayroll = useCallback((employeeId, month, patch) => {
+    setPayrolls((prev) => {
+      const existing = prev.find((p) => p.employeeId === employeeId && p.month === month);
+      if (existing) {
+        return prev.map((p) => (p.id === existing.id ? { ...p, ...patch } : p));
+      }
+      return [{
+        id: generateId('pr'),
+        employeeId, month,
+        status: 'draft',
+        paidDate: null,
+        approvedDate: null,
+        note: '',
+        ...patch,
+      }, ...prev];
+    });
+  }, [setPayrolls]);
+  const deletePayroll = useCallback((id) => {
+    setPayrolls((prev) => prev.filter((p) => p.id !== id));
+  }, [setPayrolls]);
+
   // ---------- Reset ----------
   const resetAllData = useCallback(() => {
     setClients(initialClients);
@@ -434,11 +632,17 @@ export function AppProvider({ children }) {
     setDiaryEntries(initialDiaryEntries);
     setQuotes(initialQuotes);
     setMaterials(initialMaterials);
-  }, [setClients, setProjects, setUsers, setInvoices, setChangeOrders, setFindings, setDiaryEntries, setQuotes, setMaterials]);
+    setEmployees(initialEmployees);
+    setTimeEntries(initialTimeEntries);
+    setBonuses(initialBonuses);
+    setDeductions(initialDeductions);
+    setPayrolls(initialPayrolls);
+  }, [setClients, setProjects, setUsers, setInvoices, setChangeOrders, setFindings, setDiaryEntries, setQuotes, setMaterials, setEmployees, setTimeEntries, setBonuses, setDeductions, setPayrolls]);
 
   const value = {
     clients, projects, users, currentUser, invoices, changeOrders, findings, diaryEntries,
     quotes, materials,
+    employees, timeEntries, bonuses, deductions, payrolls,
     visibleProjects,
     isClient, isOwner, isManager, isAccountant,
     login, logout,
@@ -453,7 +657,15 @@ export function AppProvider({ children }) {
     getMaterial, materialsByCategory, addMaterial, updateMaterial, deleteMaterial,
     // Quotes
     getQuote, quotesForClient, addQuote, updateQuote, deleteQuote,
-    addQuoteLine, updateQuoteLine, deleteQuoteLine, convertQuoteToProject,
+    addQuoteLine, addQuoteLines, updateQuoteLine, deleteQuoteLine,
+    applyQuoteTemplate, convertQuoteToProject,
+    // Payroll
+    getEmployee, addEmployee, updateEmployee, deleteEmployee,
+    timeEntriesForEmployee, timeEntriesForProject,
+    addTimeEntry, updateTimeEntry, deleteTimeEntry,
+    addBonus, updateBonus, deleteBonus,
+    addDeduction, updateDeduction, deleteDeduction,
+    getPayroll, upsertPayroll, deletePayroll,
     resetAllData,
   };
 

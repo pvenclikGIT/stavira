@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
 import {
   LayoutDashboard, FolderKanban, Users, LogOut,
-  Sun, BookOpen, ChevronDown, RotateCcw, FileText, Package,
+  Sun, BookOpen, ChevronDown, RotateCcw, FileText, Package, Wallet,
 } from 'lucide-react';
 import Logo from './Logo';
 import { useApp } from '../context/AppContext';
@@ -40,6 +40,7 @@ function buildSecondaryNav(role) {
   if (role === 'owner' || role === 'accountant') {
     return [
       { to: '/dashboard', label: 'Přehled',  icon: LayoutDashboard },
+      { to: '/mzdy',      label: 'Mzdy',     icon: Wallet },
       { to: '/material',  label: 'Materiál', icon: Package },
     ];
   }

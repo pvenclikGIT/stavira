@@ -12,7 +12,11 @@ import ClientDetail from './pages/ClientDetail';
 import ClientHome from './pages/ClientHome';
 import QuotesPage from './pages/QuotesPage';
 import QuoteDetail from './pages/QuoteDetail';
+import ClientQuoteView from './pages/ClientQuoteView';
 import MaterialsPage from './pages/MaterialsPage';
+import PayrollPage from './pages/PayrollPage';
+import EmployeesPage from './pages/EmployeesPage';
+import EmployeeDetail from './pages/EmployeeDetail';
 import EmptyState from './components/EmptyState';
 import ErrorBoundary from './components/ErrorBoundary';
 import { Compass } from 'lucide-react';
@@ -28,6 +32,7 @@ function ProtectedShell() {
         <Routes>
           <Route path="/" element={<ClientHome />} />
           <Route path="/projekty/:id" element={<ProjectDetail />} />
+          <Route path="/nabidky/:id" element={<ClientQuoteView />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </AppLayout>
@@ -44,7 +49,11 @@ function ProtectedShell() {
         <Route path="/projekty/:id" element={<ProjectDetail />} />
         <Route path="/nabidky" element={<QuotesPage />} />
         <Route path="/nabidky/:id" element={<QuoteDetail />} />
+        <Route path="/nabidky/:id/nahled" element={<ClientQuoteView previewMode />} />
         <Route path="/material" element={<MaterialsPage />} />
+        <Route path="/mzdy" element={<PayrollPage />} />
+        <Route path="/mzdy/zamestnanci" element={<EmployeesPage />} />
+        <Route path="/mzdy/zamestnanci/:id" element={<EmployeeDetail />} />
         <Route path="/klienti" element={<Clients />} />
         <Route path="/klienti/:id" element={<ClientDetail />} />
         <Route

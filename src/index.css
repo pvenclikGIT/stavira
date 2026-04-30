@@ -170,3 +170,19 @@
   background-size: 200% 100%;
   animation: shimmer 1.5s infinite;
 }
+
+@keyframes slideInRight {
+  from { transform: translateX(100%); }
+  to   { transform: translateX(0); }
+}
+.slide-in-right {
+  animation: slideInRight 0.22s ease-out;
+}
+
+@keyframes pulseSubtle {
+  0%, 100% { opacity: 1; }
+  50%      { opacity: 0.6; }
+}
+.pulse-subtle {
+  animation: pulseSubtle 1.4s ease-in-out infinite;
+}

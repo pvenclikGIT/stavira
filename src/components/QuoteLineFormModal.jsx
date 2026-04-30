@@ -12,7 +12,7 @@ const emptyForm = {
   note: '',
 };
 
-export default function QuoteLineFormModal({ open, onClose, line, onSave }) {
+export default function QuoteLineFormModal({ open, onClose, line, defaultSection, onSave }) {
   const [form, setForm] = useState(emptyForm);
   const [errors, setErrors] = useState({});
 
@@ -51,6 +51,7 @@ export default function QuoteLineFormModal({ open, onClose, line, onSave }) {
       ...form,
       quantity: Number(form.quantity),
       unitPrice: Number(form.unitPrice),
+      sectionTitle: defaultSection ?? line?.sectionTitle ?? null,
     };
     onSave?.(data);
     onClose?.();

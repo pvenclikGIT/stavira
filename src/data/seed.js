@@ -666,22 +666,27 @@ export const initialQuotes = [
     sentDate: '2026-04-28',
     decidedDate: null,
     validUntil: '2026-05-28',
-    marginPercent: 17,
-    laborMarginPercent: 0,
-    note: 'Cena nezahrnuje vrata garáže (vyberete si dle preference). Termín realizace: 6 týdnů od odsouhlasení.',
+    marginPercent: 17, // legacy fallback
+    marginPercentMaterial: 15,
+    marginPercentLabor: 22,
+    note: 'Cena nezahrnuje vrata garáže (vyberete si dle preference). Termín realizace: 6 týdnů od odsouhlasení. Na všechny práce poskytujeme záruku 5 let.',
     lines: [
-      { id: 'g1', type: 'material', materialId: 'mat_pt_30_p15', name: 'Porotherm 30 Profi P15', quantity: 80, unit: 'ks', unitPrice: 112, note: 'Obvodové zdivo' },
-      { id: 'g2', type: 'material', materialId: 'mat_zelezo_10', name: 'Betonářská žebírková ocel 10 mm', quantity: 280, unit: 'bm', unitPrice: 17, note: 'Věnec' },
-      { id: 'g3', type: 'material', materialId: 'mat_kari_kh20', name: 'KARI síť 6×6 mm, oka 15 cm', quantity: 7, unit: 'ks', unitPrice: 543, note: 'Podkladní deska' },
-      { id: 'g4', type: 'material', materialId: 'mat_eps_70f_15', name: 'EPS 70 F fasádní 15 cm', quantity: 38, unit: 'ks', unitPrice: 175, note: 'Zateplení' },
-      { id: 'g5', type: 'material', materialId: 'mat_cement_bm325', name: 'Cement II / B-M 32,5 R 25 kg', quantity: 24, unit: 'ks', unitPrice: 132, note: '' },
-      { id: 'g6', type: 'material', materialId: 'mat_pt_kp7_300', name: 'Porotherm KP 7 překlad 300 cm', quantity: 1, unit: 'ks', unitPrice: 1684, note: 'Vjezd pro vrata' },
-      { id: 'g20', type: 'work', materialId: null, name: 'Základová deska a zemní práce', quantity: 1, unit: 'kpl', unitPrice: 78000, note: '' },
-      { id: 'g21', type: 'work', materialId: null, name: 'Hrubá stavba — zdění', quantity: 21, unit: 'm²', unitPrice: 1450, note: '' },
-      { id: 'g22', type: 'work', materialId: null, name: 'Plochá střecha', quantity: 21, unit: 'm²', unitPrice: 2200, note: 'Včetně izolace' },
-      { id: 'g23', type: 'work', materialId: null, name: 'Omítky a zateplení fasády', quantity: 65, unit: 'm²', unitPrice: 920, note: '' },
-      { id: 'g24', type: 'work', materialId: null, name: 'Podlaha — beton + epoxid', quantity: 21, unit: 'm²', unitPrice: 850, note: '' },
-      { id: 'g30', type: 'other', materialId: null, name: 'Doprava materiálu', quantity: 1, unit: 'kpl', unitPrice: 12000, note: '' },
+      // === Základy ===
+      { id: 'g20', type: 'work', sectionTitle: 'Základy', materialId: null, name: 'Zemní práce a základová deska', quantity: 1, unit: 'kpl', unitPrice: 78000, note: 'Výkop, bednění, betonáž' },
+      { id: 'g2', type: 'material', sectionTitle: 'Základy', materialId: 'mat_zelezo_10', name: 'Betonářská žebírková ocel 10 mm', quantity: 280, unit: 'bm', unitPrice: 17, note: 'Věnec' },
+      { id: 'g3', type: 'material', sectionTitle: 'Základy', materialId: 'mat_kari_kh20', name: 'KARI síť 6×6 mm, oka 15 cm', quantity: 7, unit: 'ks', unitPrice: 543, note: 'Podkladní deska' },
+      { id: 'g5', type: 'material', sectionTitle: 'Základy', materialId: 'mat_cement_bm325', name: 'Cement II / B-M 32,5 R 25 kg', quantity: 24, unit: 'ks', unitPrice: 132, note: '' },
+      // === Hrubá stavba ===
+      { id: 'g1', type: 'material', sectionTitle: 'Hrubá stavba', materialId: 'mat_pt_30_p15', name: 'Porotherm 30 Profi P15', quantity: 80, unit: 'ks', unitPrice: 112, note: 'Obvodové zdivo' },
+      { id: 'g6', type: 'material', sectionTitle: 'Hrubá stavba', materialId: 'mat_pt_kp7_300', name: 'Porotherm KP 7 překlad 300 cm', quantity: 1, unit: 'ks', unitPrice: 1684, note: 'Nad vraty' },
+      { id: 'g21', type: 'work', sectionTitle: 'Hrubá stavba', materialId: null, name: 'Zdění a věnec', quantity: 21, unit: 'm²', unitPrice: 1450, note: '' },
+      // === Střecha a fasáda ===
+      { id: 'g22', type: 'work', sectionTitle: 'Střecha a fasáda', materialId: null, name: 'Plochá střecha s tepelnou izolací', quantity: 21, unit: 'm²', unitPrice: 2200, note: '' },
+      { id: 'g4', type: 'material', sectionTitle: 'Střecha a fasáda', materialId: 'mat_eps_70f_15', name: 'EPS 70 F fasádní 15 cm', quantity: 38, unit: 'ks', unitPrice: 175, note: 'Zateplení stěn' },
+      { id: 'g23', type: 'work', sectionTitle: 'Střecha a fasáda', materialId: null, name: 'Omítky a zateplení fasády', quantity: 65, unit: 'm²', unitPrice: 920, note: 'Slazené s hlavním domem' },
+      // === Dokončení ===
+      { id: 'g24', type: 'work', sectionTitle: 'Dokončení', materialId: null, name: 'Podlaha — beton + epoxid', quantity: 21, unit: 'm²', unitPrice: 850, note: '' },
+      { id: 'g30', type: 'other', sectionTitle: 'Doprava', materialId: null, name: 'Doprava materiálu', quantity: 1, unit: 'kpl', unitPrice: 12000, note: '' },
     ],
   },
 ];
