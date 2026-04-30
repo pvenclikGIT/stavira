@@ -27,8 +27,8 @@ export default function ClientHome() {
 
   const project = visibleProjects[0];
   const myQuotes = currentUser?.clientId ? quotesForClient(currentUser.clientId) : [];
-  // Quote awaiting client decision = sent, not yet decided
-  const pendingQuote = myQuotes.find((q) => q.status === 'sent');
+  // Quotes awaiting client decision = sent, not yet decided
+  const pendingQuotes = myQuotes.filter((q) => q.status === 'sent');
 
   if (!project && myQuotes.length === 0) {
     return (
@@ -75,9 +75,18 @@ export default function ClientHome() {
 
       <div className="px-4 md:px-8 py-5 max-w-3xl mx-auto space-y-5">
 
-        {/* Pending quote alert — clickable to full quote view */}
-        {pendingQuote && (
-          <ClientQuoteAlert quote={pendingQuote} />
+        {/* Pending quotes — clickable to full quote view */}
+        {pendingQuotes.length > 0 && (
+          <div className="space-y-3">
+            {pendingQuotes.length > 1 && (
+              <p className="text-xs uppercase tracking-wider font-bold text-accent-700 px-1">
+                {pendingQuotes.length} nabídky čekají na vaše rozhodnutí
+              </p>
+            )}
+            {pendingQuotes.map((q) => (
+              <ClientQuoteAlert key={q.id} quote={q} />
+            ))}
+          </div>
         )}
 
         {/* ===== HERO: Project status ===== */}

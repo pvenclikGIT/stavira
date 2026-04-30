@@ -13,6 +13,7 @@ const emptyForm = {
   address: '',
   description: '',
   type: 'novostavba',
+  areaSqm: '',
   validUntil: '',
   marginPercentMaterial: 15,
   marginPercentLabor: 25,
@@ -41,6 +42,7 @@ export default function QuoteFormModal({ open, onClose, quote, onSaved }) {
         address: quote.address || '',
         description: quote.description || '',
         type: quote.type || 'novostavba',
+        areaSqm: quote.areaSqm ?? '',
         validUntil: quote.validUntil || '',
         marginPercentMaterial: quote.marginPercentMaterial ?? quote.marginPercent ?? 15,
         marginPercentLabor: quote.marginPercentLabor ?? quote.marginPercent ?? 25,
@@ -96,6 +98,7 @@ export default function QuoteFormModal({ open, onClose, quote, onSaved }) {
     const { templateId, ...rest } = form;
     const data = {
       ...rest,
+      areaSqm: form.areaSqm === '' || form.areaSqm == null ? null : Number(form.areaSqm),
       marginPercentMaterial: Number(form.marginPercentMaterial),
       marginPercentLabor: Number(form.marginPercentLabor),
       // Keep legacy marginPercent in sync (avg) for older code paths
@@ -247,15 +250,27 @@ export default function QuoteFormModal({ open, onClose, quote, onSaved }) {
           {errors.clientId && <p className="mt-1 text-xs text-red-600">{errors.clientId}</p>}
         </div>
 
-        <div>
-          <label htmlFor="q-address" className="label">Adresa stavby *</label>
-          <input
-            id="q-address" type="text"
-            className={`input ${errors.address ? 'input-error' : ''}`}
-            value={form.address}
-            onChange={(e) => handleChange('address', e.target.value)}
-          />
-          {errors.address && <p className="mt-1 text-xs text-red-600">{errors.address}</p>}
+        <div className="grid grid-cols-1 sm:grid-cols-[1fr,140px] gap-3">
+          <div>
+            <label htmlFor="q-address" className="label">Adresa stavby *</label>
+            <input
+              id="q-address" type="text"
+              className={`input ${errors.address ? 'input-error' : ''}`}
+              value={form.address}
+              onChange={(e) => handleChange('address', e.target.value)}
+            />
+            {errors.address && <p className="mt-1 text-xs text-red-600">{errors.address}</p>}
+          </div>
+          <div>
+            <label htmlFor="q-area" className="label">Plocha (m²)</label>
+            <input
+              id="q-area" type="number" min="0" step="1"
+              className="input font-mono tabular-nums"
+              value={form.areaSqm}
+              onChange={(e) => handleChange('areaSqm', e.target.value)}
+              placeholder="142"
+            />
+          </div>
         </div>
 
         <div>

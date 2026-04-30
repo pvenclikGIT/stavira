@@ -563,6 +563,7 @@ export const initialQuotes = [
     address: 'Mladoboleslavská 220, 190 17 Praha-Vinoř',
     description: 'Cenová nabídka kompletní realizace novostavby rodinného domu 4+kk, plocha 142 m², plochá střecha.',
     type: 'novostavba',
+    areaSqm: 142,
     status: 'sent',
     createdAt: '2026-04-22',
     sentDate: '2026-04-25',
@@ -606,6 +607,7 @@ export const initialQuotes = [
     address: 'Slavětínská 38, 190 14 Praha-Klánovice',
     description: 'Dřevostavba 3+kk se speciální základovou deskou bez výkopu pro ochranu kořenů.',
     type: 'novostavba',
+    areaSqm: 110,
     status: 'approved',
     createdAt: '2025-03-15',
     sentDate: '2025-03-18',
@@ -635,6 +637,7 @@ export const initialQuotes = [
     address: 'Ke Kbelům 5, 190 17 Praha-Vinoř',
     description: 'Doplňková nabídka rekonstrukce koupelny v rámci probíhajícího projektu.',
     type: 'rekonstrukce',
+    areaSqm: 18,
     status: 'draft',
     createdAt: '2026-04-28',
     sentDate: null,
@@ -661,6 +664,7 @@ export const initialQuotes = [
     address: 'Mladoboleslavská 220, 190 17 Praha-Vinoř',
     description: 'Doplňková nabídka: zděná garáž 6 × 3,5 m s plochou střechou, napojená na hlavní stavbu.\n\nKonstrukce z Porotherm 30, plochá střecha s tepelnou izolací, omítky v souladu s hlavním domem.',
     type: 'novostavba',
+    areaSqm: 21,
     status: 'sent',
     createdAt: '2026-04-26',
     sentDate: '2026-04-28',
@@ -687,6 +691,72 @@ export const initialQuotes = [
       // === Dokončení ===
       { id: 'g24', type: 'work', sectionTitle: 'Dokončení', materialId: null, name: 'Podlaha — beton + epoxid', quantity: 21, unit: 'm²', unitPrice: 850, note: '' },
       { id: 'g30', type: 'other', sectionTitle: 'Doprava', materialId: null, name: 'Doprava materiálu', quantity: 1, unit: 'kpl', unitPrice: 12000, note: '' },
+    ],
+  },
+  // ====================================================================
+  // 🌟 SHOWCASE quote for client demo — complete turnkey RD for Pavel Novák.
+  // Tuned so the market comparison block looks great:
+  // 145 m² × ~46k/m² = 6.7M total → mírně pod pražský průměr 52k = ~12 % saving
+  // ====================================================================
+  {
+    id: 'q_novak_komplet',
+    number: 'NAB-2026-004',
+    title: 'Kompletní novostavba RD Novák — Vinoř (varianta na klíč)',
+    clientId: 'cli_novak',
+    address: 'Bohdanečská 142, 190 17 Praha-Vinoř',
+    description: 'Kompletní dodávka novostavby rodinného domu 5+kk včetně všech řemesel, omítek, podlah, dveří, oken, sanity a rozvodů. Klient přebírá dům „na klíč" — připravený k nastěhování.\n\nNabídka zahrnuje 5letou záruku na celé dílo a transparentní rozpis položek.',
+    type: 'novostavba',
+    areaSqm: 145,
+    status: 'sent',
+    createdAt: '2026-04-25',
+    sentDate: '2026-04-28',
+    decidedDate: null,
+    validUntil: '2026-05-30',
+    marginPercent: 18,
+    marginPercentMaterial: 15,
+    marginPercentLabor: 22,
+    note: 'Cena platí 35 dní. Záruka 5 let na celé dílo. Pevná cena bez navýšení (vícepráce schvalujete dopředu). Termín realizace 9–10 měsíců od podpisu smlouvy.',
+    lines: [
+      // === Základy a hrubá stavba (cca 28 % celku) ===
+      { id: 'nk1',  type: 'work',     sectionTitle: 'Základy a hrubá stavba', materialId: null,                name: 'Zemní práce a základová deska',   quantity: 1,   unit: 'kpl', unitPrice: 320000, note: 'Včetně bednění, betonáže, izolace' },
+      { id: 'nk2',  type: 'material', sectionTitle: 'Základy a hrubá stavba', materialId: 'mat_pt_38_p15',     name: 'Porotherm 38 Profi P15',           quantity: 520, unit: 'ks',  unitPrice: 134,    note: 'Obvodové zdivo' },
+      { id: 'nk3',  type: 'material', sectionTitle: 'Základy a hrubá stavba', materialId: 'mat_pt_115_p10',    name: 'Porotherm 11,5 Profi P10',         quantity: 250, unit: 'ks',  unitPrice: 95,     note: 'Vnitřní příčky' },
+      { id: 'nk4',  type: 'material', sectionTitle: 'Základy a hrubá stavba', materialId: 'mat_zelezo_12',     name: 'Betonářská žebírková ocel 12 mm', quantity: 1400,unit: 'bm',  unitPrice: 24.2,   note: 'Věnce a překlady' },
+      { id: 'nk5',  type: 'material', sectionTitle: 'Základy a hrubá stavba', materialId: 'mat_cement_bm325',  name: 'Cement II / B-M 32,5 R 25 kg',     quantity: 95,  unit: 'ks',  unitPrice: 132,    note: '' },
+      { id: 'nk6',  type: 'work',     sectionTitle: 'Základy a hrubá stavba', materialId: null,                name: 'Zdění obvodových stěn a příček',   quantity: 145, unit: 'm²',  unitPrice: 1450,   note: '' },
+      { id: 'nk7',  type: 'work',     sectionTitle: 'Základy a hrubá stavba', materialId: null,                name: 'Stropní konstrukce + věnce',       quantity: 145, unit: 'm²',  unitPrice: 1850,   note: '' },
+
+      // === Střecha a fasáda (cca 17 %) ===
+      { id: 'nk10', type: 'work',     sectionTitle: 'Střecha a fasáda', materialId: null,             name: 'Krov + plochá střecha s izolací',  quantity: 1,   unit: 'kpl', unitPrice: 540000, note: '' },
+      { id: 'nk11', type: 'material', sectionTitle: 'Střecha a fasáda', materialId: 'mat_eps_70f_15', name: 'EPS 70 F fasádní 15 cm',           quantity: 280, unit: 'ks',  unitPrice: 175,    note: 'Zateplení 140 m² fasády' },
+      { id: 'nk12', type: 'work',     sectionTitle: 'Střecha a fasáda', materialId: null,             name: 'Omítky a zateplení fasády',         quantity: 140, unit: 'm²',  unitPrice: 950,    note: '' },
+      { id: 'nk13', type: 'work',     sectionTitle: 'Střecha a fasáda', materialId: null,             name: 'Klempířské prvky a okapy',          quantity: 1,   unit: 'kpl', unitPrice: 145000, note: '' },
+
+      // === Vnitřní práce (cca 25 %) ===
+      { id: 'nk20', type: 'material', sectionTitle: 'Vnitřní práce', materialId: 'mat_kn_mvc8',  name: 'TOMEŠ MVC 8 jádrová omítka 30 kg',  quantity: 145, unit: 'ks',  unitPrice: 123,    note: 'Vnitřní omítky' },
+      { id: 'nk21', type: 'material', sectionTitle: 'Vnitřní práce', materialId: 'mat_kn_mp75',  name: 'KNAUF MP 75 sádrová omítka 30 kg',   quantity: 75,  unit: 'ks',  unitPrice: 217,    note: 'Stropní omítky' },
+      { id: 'nk22', type: 'work',     sectionTitle: 'Vnitřní práce', materialId: null,           name: 'Vnitřní omítky všech ploch',         quantity: 420, unit: 'm²',  unitPrice: 380,    note: '' },
+      { id: 'nk23', type: 'work',     sectionTitle: 'Vnitřní práce', materialId: null,           name: 'Podlahy — anhydrit + nášlap',        quantity: 145, unit: 'm²',  unitPrice: 1850,   note: 'Vinyl + dlažba' },
+      { id: 'nk24', type: 'work',     sectionTitle: 'Vnitřní práce', materialId: null,           name: 'Obklady koupelen a WC',              quantity: 35,  unit: 'm²',  unitPrice: 1100,   note: '' },
+      { id: 'nk25', type: 'work',     sectionTitle: 'Vnitřní práce', materialId: null,           name: 'Vnitřní dveře a zárubně (sada)',     quantity: 9,   unit: 'ks',  unitPrice: 12500,  note: '' },
+
+      // === TZB — voda, topení, elektro (cca 18 %) ===
+      { id: 'nk30', type: 'material', sectionTitle: 'TZB — rozvody', materialId: 'mat_kg_125_2', name: 'KGEM trubka 125 × 2000 mm',          quantity: 18,  unit: 'ks',  unitPrice: 442,    note: 'Vnitřní kanalizace' },
+      { id: 'nk31', type: 'material', sectionTitle: 'TZB — rozvody', materialId: 'mat_kg_160_2', name: 'KGEM trubka 160 × 2000 mm',          quantity: 12,  unit: 'ks',  unitPrice: 637,    note: 'Hlavní rozvod' },
+      { id: 'nk32', type: 'work',     sectionTitle: 'TZB — rozvody', materialId: null,           name: 'Rozvody elektro + slaboproudu',     quantity: 1,   unit: 'kpl', unitPrice: 320000, note: 'Včetně rozvaděče' },
+      { id: 'nk33', type: 'work',     sectionTitle: 'TZB — rozvody', materialId: null,           name: 'Rozvody vody, kanalizace, topení', quantity: 1,   unit: 'kpl', unitPrice: 380000, note: '' },
+      { id: 'nk34', type: 'work',     sectionTitle: 'TZB — rozvody', materialId: null,           name: 'Tepelné čerpadlo + příprava',       quantity: 1,   unit: 'kpl', unitPrice: 280000, note: 'Vzduch-voda' },
+
+      // === Okna a dveře (cca 8 %) ===
+      { id: 'nk40', type: 'work',     sectionTitle: 'Okna a vchodové dveře', materialId: null,   name: 'Plastová okna trojsklo (komplet)',  quantity: 1,   unit: 'kpl', unitPrice: 480000, note: 'U=0,7 W/m²K' },
+      { id: 'nk41', type: 'work',     sectionTitle: 'Okna a vchodové dveře', materialId: null,   name: 'Vchodové dveře bezpečnostní',        quantity: 1,   unit: 'ks',  unitPrice: 78000,  note: '' },
+
+      // === Sanita (cca 4 %) ===
+      { id: 'nk50', type: 'work',     sectionTitle: 'Sanita a vybavení', materialId: null,        name: 'Kompletní sanita 2 koupelny + WC',   quantity: 1,   unit: 'kpl', unitPrice: 240000, note: 'Standard značky' },
+
+      // === Doprava a režie (cca 2 %) ===
+      { id: 'nk60', type: 'other',    sectionTitle: 'Doprava a stavební zařízení', materialId: null, name: 'Doprava materiálu',               quantity: 1,   unit: 'kpl', unitPrice: 65000, note: '' },
+      { id: 'nk61', type: 'other',    sectionTitle: 'Doprava a stavební zařízení', materialId: null, name: 'Lešení a stavební zařízení',     quantity: 1,   unit: 'kpl', unitPrice: 95000, note: '' },
     ],
   },
 ];

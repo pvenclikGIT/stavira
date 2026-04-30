@@ -14,7 +14,7 @@ import { generateId, todayISO } from '../utils/format';
 
 const AppContext = createContext(null);
 
-const STORAGE_VERSION = 6; // bumped — added payroll (employees, time entries, payrolls)
+const STORAGE_VERSION = 7; // bumped — added market data + showcase quote (Novák komplet)
 const KEY = (name) => `stavira:v${STORAGE_VERSION}:${name}`;
 
 // One-shot cleanup of stale storage from older app versions.

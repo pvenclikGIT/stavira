@@ -12,6 +12,7 @@ import { calcQuoteTotals, calcLineTotal, groupLinesBySections, daysUntilExpiry }
 import { MATERIAL_SUPPLIER } from '../data/materials';
 import EmptyState from '../components/EmptyState';
 import Logo from '../components/Logo';
+import ClientValueShowcase from '../components/ClientValueShowcase';
 
 /**
  * Client-facing quote presentation.
@@ -148,6 +149,10 @@ export default function ClientQuoteView({ previewMode = false }) {
             </p>
           </section>
         )}
+
+        {/* === ✨ WOW SHOWCASE — market context, value, references, trust ===
+            Shown to clients (not in preview mode it's still shown — owner sees the full client experience). */}
+        <ClientValueShowcase quote={quote} totals={totals} />
 
         {/* === Sections detail === */}
         {sections.length > 0 && (

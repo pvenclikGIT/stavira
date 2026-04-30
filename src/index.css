@@ -186,3 +186,88 @@
 .pulse-subtle {
   animation: pulseSubtle 1.4s ease-in-out infinite;
 }
+
+/* ===== WOW reveal animations for client quote presentation ===== */
+
+/* Reveal up: smoother, longer than fadeUp — for big sections */
+@keyframes revealUp {
+  from { opacity: 0; transform: translateY(24px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.reveal-up {
+  animation: revealUp 0.7s cubic-bezier(0.16, 1, 0.3, 1) backwards;
+}
+
+/* Grow bar — for animated chart bars (width-based) */
+@keyframes growBar {
+  from { width: 0; }
+  /* `to` is omitted — width is set via inline style */
+}
+.grow-bar {
+  animation: growBar 1.2s cubic-bezier(0.16, 1, 0.3, 1) backwards;
+  transform-origin: left;
+}
+
+/* Check pop — for ✓ icons in feature lists */
+@keyframes checkPop {
+  0%   { transform: scale(0) rotate(-45deg); opacity: 0; }
+  60%  { transform: scale(1.15) rotate(0); opacity: 1; }
+  100% { transform: scale(1) rotate(0); opacity: 1; }
+}
+.check-pop {
+  animation: checkPop 0.45s cubic-bezier(0.34, 1.56, 0.64, 1) backwards;
+}
+
+/* Scale in — for icons / badges */
+@keyframes scaleIn {
+  from { opacity: 0; transform: scale(0.85); }
+  to   { opacity: 1; transform: scale(1); }
+}
+.scale-in {
+  animation: scaleIn 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) backwards;
+}
+
+/* Soft glow — for hero card / "savings" badge */
+@keyframes softGlow {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(251, 191, 36, 0.4); }
+  50%      { box-shadow: 0 0 0 12px rgba(251, 191, 36, 0); }
+}
+.soft-glow {
+  animation: softGlow 2.4s ease-in-out infinite;
+}
+
+/* Floating — for testimonial cards */
+@keyframes float {
+  0%, 100% { transform: translateY(0); }
+  50%      { transform: translateY(-3px); }
+}
+.float {
+  animation: float 4s ease-in-out infinite;
+}
+
+/* Shimmer text — for premium accents */
+@keyframes shimmerText {
+  0%   { background-position: -200% center; }
+  100% { background-position: 200% center; }
+}
+.shimmer-text {
+  background: linear-gradient(90deg, currentColor 0%, rgba(251, 191, 36, 1) 25%, currentColor 50%);
+  background-size: 200% auto;
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  animation: shimmerText 3s linear infinite;
+}
+
+/* Respect reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  .reveal-up,
+  .grow-bar,
+  .check-pop,
+  .scale-in,
+  .soft-glow,
+  .float,
+  .shimmer-text {
+    animation: none !important;
+  }
+}
