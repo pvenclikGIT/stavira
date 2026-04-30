@@ -1,14 +1,13 @@
 import { useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import {
-  Camera, BookOpen, AlertTriangle, ChevronRight,
+  BookOpen,
   Building2, Hammer, Receipt, FileText, ShieldAlert,
   Sun, Calendar, ArrowUpRight,
 } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import { formatCZK, formatDate, daysFromNow, classNames } from '../utils/format';
 import PageHeader from '../components/PageHeader';
-import Badge from '../components/Badge';
 
 /**
  * "Dnes" — primary page after login.

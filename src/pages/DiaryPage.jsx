@@ -1,10 +1,10 @@
 import { useState, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import {
-  BookOpen, Plus, ArrowUpRight, ChevronDown,
+  BookOpen, Plus, ArrowUpRight,
 } from 'lucide-react';
 import { useApp } from '../context/AppContext';
-import { formatDate, classNames } from '../utils/format';
+import { classNames } from '../utils/format';
 import PageHeader from '../components/PageHeader';
 import EmptyState from '../components/EmptyState';
 import DiaryEntryFormModal from '../components/DiaryEntryFormModal';

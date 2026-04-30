@@ -1,0 +1,21 @@
+<!doctype html>
+<html lang="cs">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Stavira</title>
+    <script>
+      // GitHub Pages SPA fallback for HashRouter:
+      // Any unknown path is redirected to the SPA root.
+      // Works on /stavira/ (GitHub Pages), custom domains, anywhere.
+      (function () {
+        var pathParts = window.location.pathname.split('/').filter(Boolean);
+        // Drop the last segment (the unknown path) and redirect to base
+        var base = pathParts.length > 0 ? '/' + pathParts[0] + '/' : '/';
+        window.location.replace(base);
+      })();
+    </script>
+  </head>
+  <body>
+    <p>Přesměrovávám…</p>
+  </body>
+</html>

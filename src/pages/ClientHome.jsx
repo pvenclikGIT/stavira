@@ -1,12 +1,12 @@
-import { useState, useMemo } from 'react';
+import { useState } from 'react';
 import {
   Calendar, MapPin, Receipt, FileText, BookOpen,
   Check, X as XIcon, Building2, Hammer,
-  TrendingUp, Wallet, ChevronRight, AlertCircle,
+  ChevronRight,
 } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import { PROJECT_TYPES, INVOICE_STATUSES, CHANGE_ORDER_STATUSES, WEATHER_OPTIONS } from '../data/seed';
-import { formatCZK, formatDate, daysFromNow, classNames } from '../utils/format';
+import { formatCZK, formatDate, daysFromNow } from '../utils/format';
 import PageHeader from '../components/PageHeader';
 import Badge from '../components/Badge';
 import EmptyState from '../components/EmptyState';

@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
 import {
   LayoutDashboard, FolderKanban, Users, LogOut,
-  Sun, BookOpen, ChevronDown, RotateCcw, MoreHorizontal,
+  Sun, BookOpen, ChevronDown, RotateCcw,
 } from 'lucide-react';
 import Logo from './Logo';
 import { useApp } from '../context/AppContext';
