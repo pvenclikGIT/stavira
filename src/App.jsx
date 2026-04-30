@@ -10,7 +10,11 @@ import ProjectDetail from './pages/ProjectDetail';
 import Clients from './pages/Clients';
 import ClientDetail from './pages/ClientDetail';
 import ClientHome from './pages/ClientHome';
+import QuotesPage from './pages/QuotesPage';
+import QuoteDetail from './pages/QuoteDetail';
+import MaterialsPage from './pages/MaterialsPage';
 import EmptyState from './components/EmptyState';
+import ErrorBoundary from './components/ErrorBoundary';
 import { Compass } from 'lucide-react';
 
 function ProtectedShell() {
@@ -38,6 +42,9 @@ function ProtectedShell() {
         <Route path="/denik" element={<DiaryPage />} />
         <Route path="/projekty" element={<Projects />} />
         <Route path="/projekty/:id" element={<ProjectDetail />} />
+        <Route path="/nabidky" element={<QuotesPage />} />
+        <Route path="/nabidky/:id" element={<QuoteDetail />} />
+        <Route path="/material" element={<MaterialsPage />} />
         <Route path="/klienti" element={<Clients />} />
         <Route path="/klienti/:id" element={<ClientDetail />} />
         <Route
@@ -77,10 +84,12 @@ function AuthGate() {
 
 export default function App() {
   return (
-    <AppProvider>
-      <HashRouter>
-        <AuthGate />
-      </HashRouter>
-    </AppProvider>
+    <ErrorBoundary>
+      <AppProvider>
+        <HashRouter>
+          <AuthGate />
+        </HashRouter>
+      </AppProvider>
+    </ErrorBoundary>
   );
 }

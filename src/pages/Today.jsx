@@ -18,6 +18,7 @@ export default function Today() {
   const {
     currentUser, visibleProjects,
     invoices, changeOrders, findings, diaryEntries,
+    quotes,
     isManager, isOwner, isAccountant,
   } = useApp();
 
@@ -70,6 +71,11 @@ export default function Today() {
   const openHighFindings = findings.filter(
     (f) => visibleProjectIds.includes(f.projectId) && f.severity === 'high' && f.status !== 'resolved'
   );
+
+  // Quotes — drafts (need to finish) and sent (waiting for client)
+  const draftQuotes = quotes.filter((q) => q.status === 'draft');
+  const sentQuotes  = quotes.filter((q) => q.status === 'sent');
+  const approvedNotConverted = quotes.filter((q) => q.status === 'approved' && !q.projectId);
 
   const showAlerts = isOwner || isAccountant;
 
@@ -145,6 +151,67 @@ export default function Today() {
                     {openHighFindings.length} {openHighFindings.length === 1 ? 'závažný nález' : 'závažných nálezů'}
                   </p>
                   <p className="text-sm text-ink-600 mt-0.5">Vyžaduje řešení</p>
+                </div>
+                <ArrowUpRight className="w-5 h-5 text-ink-400 flex-shrink-0" />
+              </Link>
+            )}
+
+            {approvedNotConverted.length > 0 && (
+              <Link
+                to={`/nabidky/${approvedNotConverted[0].id}`}
+                className="card card-hover p-4 border-l-4 border-emerald-400 flex items-center gap-3"
+              >
+                <div className="w-11 h-11 rounded-xl bg-emerald-100 text-emerald-700 flex items-center justify-center flex-shrink-0">
+                  <FileText className="w-5 h-5" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="font-semibold text-ink-900">
+                    {approvedNotConverted.length === 1 ? 'Schválená nabídka' : `${approvedNotConverted.length} schválených nabídek`}
+                    {' '}— vytvořit projekt
+                  </p>
+                  <p className="text-sm text-ink-600 mt-0.5">
+                    Klient potvrdil, můžeme začít stavět
+                  </p>
+                </div>
+                <ArrowUpRight className="w-5 h-5 text-ink-400 flex-shrink-0" />
+              </Link>
+            )}
+
+            {sentQuotes.length > 0 && (
+              <Link
+                to="/nabidky"
+                className="card card-hover p-4 border-l-4 border-amber-400 flex items-center gap-3"
+              >
+                <div className="w-11 h-11 rounded-xl bg-amber-100 text-amber-700 flex items-center justify-center flex-shrink-0">
+                  <FileText className="w-5 h-5" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="font-semibold text-ink-900">
+                    {sentQuotes.length} {sentQuotes.length === 1 ? 'nabídka' : sentQuotes.length <= 4 ? 'nabídky' : 'nabídek'} u klienta
+                  </p>
+                  <p className="text-sm text-ink-600 mt-0.5">
+                    Čekáme na rozhodnutí
+                  </p>
+                </div>
+                <ArrowUpRight className="w-5 h-5 text-ink-400 flex-shrink-0" />
+              </Link>
+            )}
+
+            {draftQuotes.length > 0 && (
+              <Link
+                to="/nabidky"
+                className="card card-hover p-4 border-l-4 border-slate-400 flex items-center gap-3"
+              >
+                <div className="w-11 h-11 rounded-xl bg-slate-100 text-slate-700 flex items-center justify-center flex-shrink-0">
+                  <FileText className="w-5 h-5" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="font-semibold text-ink-900">
+                    {draftQuotes.length} {draftQuotes.length === 1 ? 'rozpracovaná nabídka' : 'rozpracovaných nabídek'}
+                  </p>
+                  <p className="text-sm text-ink-600 mt-0.5">
+                    Připravit a odeslat klientovi
+                  </p>
                 </div>
                 <ArrowUpRight className="w-5 h-5 text-ink-400 flex-shrink-0" />
               </Link>

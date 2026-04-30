@@ -5,7 +5,7 @@ import {
   ChevronRight,
 } from 'lucide-react';
 import { useApp } from '../context/AppContext';
-import { PROJECT_TYPES, INVOICE_STATUSES, CHANGE_ORDER_STATUSES, WEATHER_OPTIONS } from '../data/seed';
+import { PROJECT_TYPES, INVOICE_STATUSES, CHANGE_ORDER_STATUSES, WEATHER_OPTIONS, QUOTE_STATUSES } from '../data/seed';
 import { formatCZK, formatDate, daysFromNow } from '../utils/format';
 import PageHeader from '../components/PageHeader';
 import Badge from '../components/Badge';
@@ -21,11 +21,15 @@ export default function ClientHome() {
     visibleProjects, currentUser,
     invoicesForProject, changeOrdersForProject, diaryForProject,
     decideChangeOrder,
+    quotesForClient, updateQuote,
   } = useApp();
 
   const project = visibleProjects[0];
+  const myQuotes = currentUser?.clientId ? quotesForClient(currentUser.clientId) : [];
+  // Quote awaiting client decision = sent, not yet decided
+  const pendingQuote = myQuotes.find((q) => q.status === 'sent');
 
-  if (!project) {
+  if (!project && myQuotes.length === 0) {
     return (
       <div className="px-4 py-12 max-w-md mx-auto">
         <EmptyState
@@ -35,6 +39,11 @@ export default function ClientHome() {
         />
       </div>
     );
+  }
+
+  // Quote-only client (still considering, no project yet)
+  if (!project && myQuotes.length > 0) {
+    return <ClientQuoteOnly user={currentUser} quotes={myQuotes} updateQuote={updateQuote} />;
   }
 
   const TypeIcon = project.type === 'rekonstrukce' ? Hammer : Building2;
@@ -64,6 +73,15 @@ export default function ClientHome() {
       />
 
       <div className="px-4 md:px-8 py-5 max-w-3xl mx-auto space-y-5">
+
+        {/* Pending quote alert — needs decision */}
+        {pendingQuote && (
+          <ClientQuoteAlert
+            quote={pendingQuote}
+            onApprove={() => updateQuote(pendingQuote.id, { status: 'approved', decidedDate: new Date().toISOString().slice(0,10) })}
+            onReject={() => updateQuote(pendingQuote.id, { status: 'rejected', decidedDate: new Date().toISOString().slice(0,10) })}
+          />
+        )}
 
         {/* ===== HERO: Project status ===== */}
         <section className="card overflow-hidden">
@@ -378,6 +396,157 @@ function ChangeOrderApprovalCard({ changeOrder, onDecide }) {
           placeholder="Důvod zamítnutí — volitelné…"
         />
       </Modal>
+    </div>
+  );
+}
+
+// =====================================================================
+// Quote-only client view (received quote but no project yet)
+// =====================================================================
+function ClientQuoteOnly({ user, quotes, updateQuote }) {
+  const todayStr = () => new Date().toISOString().slice(0, 10);
+  const greeting = (() => {
+    const h = new Date().getHours();
+    if (h < 11) return 'Dobré ráno';
+    if (h < 18) return 'Dobré odpoledne';
+    return 'Dobrý večer';
+  })();
+  const sortedQuotes = [...quotes].sort((a, b) => (a.createdAt < b.createdAt ? 1 : -1));
+
+  return (
+    <>
+      <PageHeader
+        title={`${greeting}, ${user?.name?.split(' ')[0] || ''}`}
+        subtitle="Vaše cenové nabídky."
+      />
+      <div className="px-4 md:px-8 py-5 max-w-3xl mx-auto space-y-4">
+        {sortedQuotes.map((quote) => {
+          const subtotal = (quote.lines || []).reduce(
+            (s, l) => s + (Number(l.quantity) || 0) * (Number(l.unitPrice) || 0), 0
+          );
+          const total = Math.round(subtotal * (1 + (Number(quote.marginPercent) || 0) / 100));
+          const isPending = quote.status === 'sent';
+          return (
+            <div key={quote.id} className="card overflow-hidden">
+              <div className="p-5">
+                <div className="flex items-start justify-between gap-3 mb-3">
+                  <div className="min-w-0">
+                    <p className="font-mono text-[10px] uppercase tracking-wider text-ink-500 font-semibold">
+                      {quote.number}
+                    </p>
+                    <h3 className="font-display text-lg font-bold text-ink-900 mt-0.5 leading-tight">
+                      {quote.title}
+                    </h3>
+                  </div>
+                  <Badge color={QUOTE_STATUSES[quote.status]?.color || 'slate'}>
+                    {QUOTE_STATUSES[quote.status]?.label}
+                  </Badge>
+                </div>
+                {quote.description && (
+                  <p className="text-sm text-ink-700 mb-3 leading-relaxed">{quote.description}</p>
+                )}
+                <div className="grid grid-cols-2 gap-3 text-sm">
+                  <div>
+                    <p className="text-[10px] uppercase tracking-wider font-semibold text-ink-500">Adresa</p>
+                    <p className="text-ink-900 mt-0.5">{quote.address}</p>
+                  </div>
+                  {quote.validUntil && (
+                    <div>
+                      <p className="text-[10px] uppercase tracking-wider font-semibold text-ink-500">Platí do</p>
+                      <p className="text-ink-900 mt-0.5 font-mono tabular-nums">{formatDate(quote.validUntil)}</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+              <div className="p-5 bg-ink-900 text-white">
+                <p className="text-[10px] uppercase tracking-wider font-bold text-accent-400 mb-1">
+                  Celková cena
+                </p>
+                <p className="font-display text-3xl font-extrabold tabular-nums">{formatCZK(total)}</p>
+                {quote.note && (
+                  <p className="text-xs text-ink-300 mt-3 italic">{quote.note}</p>
+                )}
+              </div>
+              {isPending && (
+                <div className="p-4 grid grid-cols-2 gap-2 border-t border-ink-100">
+                  <button
+                    type="button"
+                    onClick={() => updateQuote(quote.id, { status: 'rejected', decidedDate: todayStr() })}
+                    className="btn btn-lg btn-outline border-red-300 text-red-700 hover:bg-red-50"
+                  >
+                    <XIcon className="w-5 h-5" />
+                    Zamítnout
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => updateQuote(quote.id, { status: 'approved', decidedDate: todayStr() })}
+                    className="btn btn-lg bg-emerald-600 hover:bg-emerald-700 text-white border-emerald-600"
+                  >
+                    <Check className="w-5 h-5" />
+                    Schválit
+                  </button>
+                </div>
+              )}
+            </div>
+          );
+        })}
+      </div>
+    </>
+  );
+}
+
+// =====================================================================
+// Pending quote alert (used inside main client view)
+// =====================================================================
+function ClientQuoteAlert({ quote, onApprove, onReject }) {
+  const subtotal = (quote.lines || []).reduce(
+    (s, l) => s + (Number(l.quantity) || 0) * (Number(l.unitPrice) || 0), 0
+  );
+  const total = Math.round(subtotal * (1 + (Number(quote.marginPercent) || 0) / 100));
+  return (
+    <div className="card overflow-hidden border-l-4 border-accent-400">
+      <div className="p-4 md:p-5">
+        <div className="flex items-start gap-3 mb-3">
+          <div className="w-11 h-11 rounded-xl bg-accent-100 text-accent-700 flex items-center justify-center flex-shrink-0">
+            <FileText className="w-5 h-5" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="font-mono text-[10px] uppercase tracking-wider text-ink-500 font-semibold">
+              Nabídka {quote.number}
+            </p>
+            <p className="font-display text-base font-bold text-ink-900 leading-tight mt-0.5">
+              {quote.title}
+            </p>
+            <p className="font-display text-2xl font-extrabold tabular-nums text-ink-900 mt-2">
+              {formatCZK(total)}
+            </p>
+            {quote.validUntil && (
+              <p className="text-xs text-ink-500 mt-1 inline-flex items-center gap-1">
+                <Calendar className="w-3 h-3" />
+                Platí do {formatDate(quote.validUntil)}
+              </p>
+            )}
+          </div>
+        </div>
+      </div>
+      <div className="px-4 pb-4 grid grid-cols-2 gap-2">
+        <button
+          type="button"
+          onClick={onReject}
+          className="btn btn-lg btn-outline border-red-300 text-red-700 hover:bg-red-50"
+        >
+          <XIcon className="w-5 h-5" />
+          Zamítnout
+        </button>
+        <button
+          type="button"
+          onClick={onApprove}
+          className="btn btn-lg bg-emerald-600 hover:bg-emerald-700 text-white border-emerald-600"
+        >
+          <Check className="w-5 h-5" />
+          Schválit
+        </button>
+      </div>
     </div>
   );
 }

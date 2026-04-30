@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
 import {
   LayoutDashboard, FolderKanban, Users, LogOut,
-  Sun, BookOpen, ChevronDown, RotateCcw,
+  Sun, BookOpen, ChevronDown, RotateCcw, FileText, Package,
 } from 'lucide-react';
 import Logo from './Logo';
 import { useApp } from '../context/AppContext';
@@ -15,10 +15,10 @@ function buildNav(role) {
   // Owner / accountant — full access, "Dnes" first as it's most-used daily
   if (role === 'owner' || role === 'accountant') {
     return [
-      { to: '/',         label: 'Dnes',      icon: Sun, end: true },
-      { to: '/projekty', label: 'Projekty',  icon: FolderKanban },
-      { to: '/dashboard', label: 'Přehled',  icon: LayoutDashboard },
-      { to: '/klienti',  label: 'Klienti',   icon: Users },
+      { to: '/',         label: 'Dnes',     icon: Sun, end: true },
+      { to: '/projekty', label: 'Projekty', icon: FolderKanban },
+      { to: '/nabidky',  label: 'Nabídky',  icon: FileText },
+      { to: '/klienti',  label: 'Klienti',  icon: Users },
     ];
   }
   // Manager (stavbyvedoucí) — daily focus, no clients
@@ -35,10 +35,22 @@ function buildNav(role) {
   ];
 }
 
+// Secondary nav items shown in desktop sidebar + profile dropdown (not in mobile bottom bar)
+function buildSecondaryNav(role) {
+  if (role === 'owner' || role === 'accountant') {
+    return [
+      { to: '/dashboard', label: 'Přehled',  icon: LayoutDashboard },
+      { to: '/material',  label: 'Materiál', icon: Package },
+    ];
+  }
+  return [];
+}
+
 export default function AppLayout({ children }) {
   const { currentUser, logout } = useApp();
   const location = useLocation();
   const navItems = buildNav(currentUser?.role);
+  const secondaryNavItems = buildSecondaryNav(currentUser?.role);
 
   return (
     <div className="min-h-screen bg-ink-50">
@@ -52,6 +64,15 @@ export default function AppLayout({ children }) {
             {currentUser?.role === 'client' ? 'Moje' : 'Hlavní'}
           </p>
           <DesktopNav items={navItems} />
+
+          {secondaryNavItems.length > 0 && (
+            <>
+              <p className="px-3 mt-6 mb-2 text-[10px] uppercase tracking-[0.18em] font-bold text-ink-500">
+                Další
+              </p>
+              <DesktopNav items={secondaryNavItems} />
+            </>
+          )}
         </div>
         <div className="p-3 border-t border-ink-800">
           <UserBlock currentUser={currentUser} onLogout={logout} />
@@ -62,7 +83,7 @@ export default function AppLayout({ children }) {
       <header className="lg:hidden sticky top-0 z-30 bg-ink-950 text-white">
         <div className="flex items-center justify-between px-4 h-14">
           <Logo size="sm" mono />
-          {currentUser && <MobileUserMenu currentUser={currentUser} onLogout={logout} />}
+          {currentUser && <MobileUserMenu currentUser={currentUser} onLogout={logout} secondaryNav={secondaryNavItems} />}
         </div>
       </header>
 
@@ -139,7 +160,7 @@ function DesktopNav({ items }) {
   );
 }
 
-function MobileUserMenu({ currentUser, onLogout }) {
+function MobileUserMenu({ currentUser, onLogout, secondaryNav = [] }) {
   const [open, setOpen] = useState(false);
   const [resetOpen, setResetOpen] = useState(false);
   const { resetAllData } = useApp();
@@ -165,6 +186,23 @@ function MobileUserMenu({ currentUser, onLogout }) {
               <p className="font-semibold text-ink-900">{currentUser.name}</p>
               <p className="text-xs text-ink-500 mt-0.5">{ROLE_LABELS[currentUser.role]}</p>
             </div>
+
+            {secondaryNav.length > 0 && (
+              <div className="border-b border-ink-100">
+                {secondaryNav.map((item) => (
+                  <NavLink
+                    key={item.to}
+                    to={item.to}
+                    onClick={() => setOpen(false)}
+                    className="w-full flex items-center gap-3 px-4 py-3 text-sm font-semibold text-ink-700 hover:bg-ink-50 active:bg-ink-100"
+                  >
+                    <item.icon className="w-4 h-4 text-ink-500" />
+                    {item.label}
+                  </NavLink>
+                ))}
+              </div>
+            )}
+
             <button
               type="button"
               onClick={() => { setResetOpen(true); setOpen(false); }}

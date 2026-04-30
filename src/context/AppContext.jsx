@@ -3,14 +3,38 @@ import { useLocalStorage } from '../hooks/useLocalStorage';
 import {
   initialClients, initialProjects, initialUsers,
   initialInvoices, initialChangeOrders, initialFindings,
-  initialDiaryEntries, STAGES_BY_TYPE,
+  initialDiaryEntries, initialQuotes, initialMaterials,
+  STAGES_BY_TYPE,
 } from '../data/seed';
 import { generateId, todayISO } from '../utils/format';
 
 const AppContext = createContext(null);
 
-const STORAGE_VERSION = 3; // bumped — added diary entries + bigger seed dates
+const STORAGE_VERSION = 4; // bumped — added quotes + materials catalog
 const KEY = (name) => `stavira:v${STORAGE_VERSION}:${name}`;
+
+// One-shot cleanup of stale storage from older app versions.
+// Runs once at module load. Removes any stavira:v* keys that aren't current.
+// Prevents stale state from breaking the app after schema changes.
+(function cleanupOldStorage() {
+  try {
+    if (typeof window === 'undefined' || !window.localStorage) return;
+    const currentPrefix = `stavira:v${STORAGE_VERSION}:`;
+    const toRemove = [];
+    for (let i = 0; i < window.localStorage.length; i++) {
+      const key = window.localStorage.key(i);
+      if (key && key.startsWith('stavira:v') && !key.startsWith(currentPrefix)) {
+        toRemove.push(key);
+      }
+    }
+    toRemove.forEach((k) => window.localStorage.removeItem(k));
+    if (toRemove.length > 0) {
+      console.info(`[Stavira] Vyčištěno ${toRemove.length} zastaralých klíčů ze starší verze.`);
+    }
+  } catch (err) {
+    console.warn('[Stavira] Cleanup of old storage failed:', err);
+  }
+})();
 
 export function AppProvider({ children }) {
   const [clients, setClients]           = useLocalStorage(KEY('clients'),      initialClients);
@@ -20,6 +44,8 @@ export function AppProvider({ children }) {
   const [changeOrders, setChangeOrders] = useLocalStorage(KEY('changeOrders'), initialChangeOrders);
   const [findings, setFindings]         = useLocalStorage(KEY('findings'),     initialFindings);
   const [diaryEntries, setDiaryEntries] = useLocalStorage(KEY('diary'),        initialDiaryEntries);
+  const [quotes, setQuotes]             = useLocalStorage(KEY('quotes'),       initialQuotes);
+  const [materials, setMaterials]       = useLocalStorage(KEY('materials'),    initialMaterials);
   const [currentUserId, setCurrentUserId] = useLocalStorage(KEY('currentUser'), null);
 
   const currentUser = useMemo(
@@ -27,13 +53,11 @@ export function AppProvider({ children }) {
     [users, currentUserId]
   );
 
-  // Role helpers
   const isClient = currentUser?.role === 'client';
   const isOwner = currentUser?.role === 'owner';
   const isManager = currentUser?.role === 'manager';
   const isAccountant = currentUser?.role === 'accountant';
 
-  // Project visibility — clients see only their own
   const visibleProjects = useMemo(() => {
     if (!currentUser) return [];
     if (isClient && currentUser.clientId) {
@@ -269,6 +293,136 @@ export function AppProvider({ children }) {
     setDiaryEntries((prev) => prev.filter((d) => d.id !== id));
   }, [setDiaryEntries]);
 
+  // ---------- Materials ----------
+  const getMaterial = useCallback(
+    (id) => materials.find((m) => m.id === id) || null, [materials]
+  );
+  const materialsByCategory = useMemo(() => {
+    const map = {};
+    materials.forEach((m) => {
+      if (!map[m.category]) map[m.category] = [];
+      map[m.category].push(m);
+    });
+    return map;
+  }, [materials]);
+  const addMaterial = useCallback((data) => {
+    const newMaterial = { id: generateId('mat'), ...data };
+    setMaterials((prev) => [newMaterial, ...prev]);
+    return newMaterial;
+  }, [setMaterials]);
+  const updateMaterial = useCallback((id, patch) => {
+    setMaterials((prev) => prev.map((m) => (m.id === id ? { ...m, ...patch } : m)));
+  }, [setMaterials]);
+  const deleteMaterial = useCallback((id) => {
+    setMaterials((prev) => prev.filter((m) => m.id !== id));
+  }, [setMaterials]);
+
+  // ---------- Quotes ----------
+  const getQuote = useCallback(
+    (id) => quotes.find((q) => q.id === id) || null, [quotes]
+  );
+  const quotesForClient = useCallback(
+    (clientId) => quotes.filter((q) => q.clientId === clientId), [quotes]
+  );
+  const addQuote = useCallback((data) => {
+    const seq = String(quotes.length + 1).padStart(3, '0');
+    const year = new Date().getFullYear();
+    const newQuote = {
+      id: generateId('q'),
+      number: `NAB-${year}-${seq}`,
+      status: 'draft',
+      createdAt: todayISO(),
+      sentDate: null,
+      decidedDate: null,
+      validUntil: '',
+      marginPercent: 18,
+      laborMarginPercent: 0,
+      lines: [],
+      note: '',
+      type: 'novostavba',
+      ...data,
+    };
+    setQuotes((prev) => [newQuote, ...prev]);
+    return newQuote;
+  }, [quotes.length, setQuotes]);
+  const updateQuote = useCallback((id, patch) => {
+    setQuotes((prev) => prev.map((q) => (q.id === id ? { ...q, ...patch } : q)));
+  }, [setQuotes]);
+  const deleteQuote = useCallback((id) => {
+    setQuotes((prev) => prev.filter((q) => q.id !== id));
+  }, [setQuotes]);
+
+  // Quote line operations
+  const addQuoteLine = useCallback((quoteId, line) => {
+    setQuotes((prev) => prev.map((q) => {
+      if (q.id !== quoteId) return q;
+      const newLine = { id: generateId('l'), type: 'material', quantity: 1, unitPrice: 0, note: '', ...line };
+      return { ...q, lines: [...(q.lines || []), newLine] };
+    }));
+  }, [setQuotes]);
+  const updateQuoteLine = useCallback((quoteId, lineId, patch) => {
+    setQuotes((prev) => prev.map((q) => {
+      if (q.id !== quoteId) return q;
+      return { ...q, lines: q.lines.map((l) => (l.id === lineId ? { ...l, ...patch } : l)) };
+    }));
+  }, [setQuotes]);
+  const deleteQuoteLine = useCallback((quoteId, lineId) => {
+    setQuotes((prev) => prev.map((q) => {
+      if (q.id !== quoteId) return q;
+      return { ...q, lines: q.lines.filter((l) => l.id !== lineId) };
+    }));
+  }, [setQuotes]);
+
+  // Convert approved quote to a real project
+  const convertQuoteToProject = useCallback((quoteId) => {
+    const quote = quotes.find((q) => q.id === quoteId);
+    if (!quote || quote.projectId) return null;
+
+    // Calculate total budget with margin
+    const subtotal = (quote.lines || []).reduce(
+      (s, l) => s + (Number(l.quantity) || 0) * (Number(l.unitPrice) || 0), 0
+    );
+    const total = Math.round(subtotal * (1 + (Number(quote.marginPercent) || 0) / 100));
+
+    // Build stages from template based on quote type
+    const template = STAGES_BY_TYPE[quote.type] || STAGES_BY_TYPE.novostavba;
+    const stages = template.map((s, i) => ({
+      id: generateId('stg'), key: s.key, label: s.label, description: s.description,
+      order: i, startDate: '', endDate: '', progress: 0,
+      budget: Math.round(total / template.length), actualCost: 0,
+    }));
+
+    const yearCode = new Date().getFullYear();
+    const projectCount = projects.filter((p) => (p.code || '').startsWith(String(yearCode))).length;
+    const code = `${yearCode}-${String(projectCount + 1).padStart(3, '0')}`;
+
+    const newProject = {
+      id: generateId('prj'),
+      name: quote.title,
+      code,
+      type: quote.type,
+      clientId: quote.clientId,
+      address: quote.address,
+      description: quote.description,
+      status: 'planning',
+      budget: total,
+      actualCost: 0,
+      startDate: todayISO(),
+      endDate: '',
+      deadline: '',
+      progress: 0,
+      siteManager: '',
+      originalCondition: '',
+      stages,
+      createdAt: todayISO(),
+      fromQuoteId: quote.id,
+    };
+
+    setProjects((prev) => [newProject, ...prev]);
+    setQuotes((prev) => prev.map((q) => (q.id === quoteId ? { ...q, projectId: newProject.id } : q)));
+    return newProject;
+  }, [quotes, projects, setProjects, setQuotes]);
+
   // ---------- Reset ----------
   const resetAllData = useCallback(() => {
     setClients(initialClients);
@@ -278,31 +432,28 @@ export function AppProvider({ children }) {
     setChangeOrders(initialChangeOrders);
     setFindings(initialFindings);
     setDiaryEntries(initialDiaryEntries);
-  }, [setClients, setProjects, setUsers, setInvoices, setChangeOrders, setFindings, setDiaryEntries]);
+    setQuotes(initialQuotes);
+    setMaterials(initialMaterials);
+  }, [setClients, setProjects, setUsers, setInvoices, setChangeOrders, setFindings, setDiaryEntries, setQuotes, setMaterials]);
 
   const value = {
-    // state
     clients, projects, users, currentUser, invoices, changeOrders, findings, diaryEntries,
+    quotes, materials,
     visibleProjects,
-    // role helpers
     isClient, isOwner, isManager, isAccountant,
-    // auth
     login, logout,
-    // clients
     addClient, updateClient, deleteClient, getClient,
-    // projects
     addProject, updateProject, deleteProject, getProject, projectsForClient,
-    // stages
     updateStage, addStage, deleteStage, moveStage, replaceStagesFromTemplate,
-    // invoices
     invoicesForProject, addInvoice, updateInvoice, deleteInvoice,
-    // change orders
     changeOrdersForProject, addChangeOrder, updateChangeOrder, deleteChangeOrder, decideChangeOrder,
-    // findings
     findingsForProject, addFinding, updateFinding, deleteFinding, promoteFindingToChangeOrder,
-    // diary
     diaryForProject, addDiaryEntry, updateDiaryEntry, deleteDiaryEntry,
-    // utility
+    // Materials
+    getMaterial, materialsByCategory, addMaterial, updateMaterial, deleteMaterial,
+    // Quotes
+    getQuote, quotesForClient, addQuote, updateQuote, deleteQuote,
+    addQuoteLine, updateQuoteLine, deleteQuoteLine, convertQuoteToProject,
     resetAllData,
   };
 

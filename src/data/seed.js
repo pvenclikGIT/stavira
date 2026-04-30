@@ -1,6 +1,9 @@
 // Demo data for Stavira — family houses around Vinoř, Praha 9
 // All prices in CZK, dates in ISO format
 
+// Re-export material catalog
+export { initialMaterials, MATERIAL_CATEGORIES, MATERIAL_SUPPLIER } from './materials';
+
 export const PROJECT_TYPES = {
   novostavba:   { label: 'Novostavba',   color: 'amber',   short: 'NS' },
   rekonstrukce: { label: 'Rekonstrukce', color: 'blue',    short: 'RK' },
@@ -533,8 +536,155 @@ export const initialDiaryEntries = [
 ];
 
 // ============================================================
-// USERS
+// QUOTES (Cenové nabídky)
 // ============================================================
+export const QUOTE_STATUSES = {
+  draft:    { label: 'Rozpracováno', color: 'slate' },
+  sent:     { label: 'Odesláno klientovi', color: 'amber' },
+  approved: { label: 'Schváleno',  color: 'emerald' },
+  rejected: { label: 'Zamítnuto',  color: 'red' },
+  expired:  { label: 'Prošlá platnost', color: 'slate' },
+};
+
+// Quote line types
+export const QUOTE_LINE_TYPES = {
+  material: { label: 'Materiál', color: 'blue' },
+  work:     { label: 'Práce',    color: 'amber' },
+  other:    { label: 'Ostatní',  color: 'slate' },
+};
+
+export const initialQuotes = [
+  // Active draft — secretary preparing quote for new family house
+  {
+    id: 'q_zelinka_001',
+    number: 'NAB-2026-001',
+    title: 'Novostavba RD Zelinkovi — Vinoř',
+    clientId: 'cli_horakovi', // reuse existing client
+    address: 'Mladoboleslavská 220, 190 17 Praha-Vinoř',
+    description: 'Cenová nabídka kompletní realizace novostavby rodinného domu 4+kk, plocha 142 m², plochá střecha.',
+    type: 'novostavba',
+    status: 'sent',
+    createdAt: '2026-04-22',
+    sentDate: '2026-04-25',
+    decidedDate: null,
+    validUntil: '2026-05-25',
+    marginPercent: 18, // celková marže nad nákupní cenou
+    laborMarginPercent: 0,
+    note: 'Nabídka platí 30 dní. Nezahrnuje vnitřní vybavení, kuchyně a sanity.',
+    lines: [
+      // === MATERIÁL ===
+      { id: 'l1', type: 'material', materialId: 'mat_pt_38_p15', name: 'Porotherm 38 Profi P15', quantity: 480, unit: 'ks', unitPrice: 134, note: 'Obvodové zdivo' },
+      { id: 'l2', type: 'material', materialId: 'mat_pt_115_p10', name: 'Porotherm 11,5 Profi P10', quantity: 220, unit: 'ks', unitPrice: 95, note: 'Vnitřní příčky' },
+      { id: 'l3', type: 'material', materialId: 'mat_cement_bm325', name: 'Cement II / B-M 32,5 R 25 kg', quantity: 80, unit: 'ks', unitPrice: 132, note: '' },
+      { id: 'l4', type: 'material', materialId: 'mat_zelezo_12', name: 'Betonářská žebírková ocel 12 mm', quantity: 1200, unit: 'bm', unitPrice: 24.2, note: 'Věnce a překlady' },
+      { id: 'l5', type: 'material', materialId: 'mat_kari_kh20', name: 'KARI síť 6×6 mm, oka 15 cm', quantity: 28, unit: 'ks', unitPrice: 543, note: 'Podkladní deska' },
+      { id: 'l6', type: 'material', materialId: 'mat_eps_70f_15', name: 'EPS 70 F fasádní 15 cm', quantity: 240, unit: 'ks', unitPrice: 175, note: '120 m² fasády' },
+      { id: 'l7', type: 'material', materialId: 'mat_pt_kp7_200', name: 'Porotherm KP 7 překlad 200 cm', quantity: 8, unit: 'ks', unitPrice: 1024, note: '' },
+      { id: 'l8', type: 'material', materialId: 'mat_pt_kp7_150', name: 'Porotherm KP 7 překlad 150 cm', quantity: 6, unit: 'ks', unitPrice: 615, note: '' },
+      { id: 'l9', type: 'material', materialId: 'mat_kg_125_2', name: 'KGEM trubka 125 × 2000 mm', quantity: 14, unit: 'ks', unitPrice: 442, note: 'Vnitřní kanalizace' },
+      { id: 'l10', type: 'material', materialId: 'mat_kg_160_2', name: 'KGEM trubka 160 × 2000 mm', quantity: 8, unit: 'ks', unitPrice: 637, note: 'Hlavní rozvod' },
+      { id: 'l11', type: 'material', materialId: 'mat_kn_mvc8', name: 'TOMEŠ MVC 8 jádrová omítka 30 kg', quantity: 120, unit: 'ks', unitPrice: 123, note: 'Vnitřní omítky' },
+      { id: 'l12', type: 'material', materialId: 'mat_kn_mp75', name: 'KNAUF MP 75 sádrová omítka 30 kg', quantity: 60, unit: 'ks', unitPrice: 217, note: 'Stropní omítky' },
+      // === PRÁCE ===
+      { id: 'l20', type: 'work', materialId: null, name: 'Zemní práce a základy', quantity: 1, unit: 'kpl', unitPrice: 280000, note: 'Včetně bednění a betonáže' },
+      { id: 'l21', type: 'work', materialId: null, name: 'Hrubá stavba — zdění', quantity: 320, unit: 'm²', unitPrice: 1450, note: 'Cena včetně zedníků' },
+      { id: 'l22', type: 'work', materialId: null, name: 'Stropní konstrukce + věnce', quantity: 142, unit: 'm²', unitPrice: 1850, note: '' },
+      { id: 'l23', type: 'work', materialId: null, name: 'Krov + střecha', quantity: 1, unit: 'kpl', unitPrice: 480000, note: 'Plochá střecha s tepelnou izolací' },
+      { id: 'l24', type: 'work', materialId: null, name: 'Vnitřní omítky', quantity: 380, unit: 'm²', unitPrice: 380, note: '' },
+      { id: 'l25', type: 'work', materialId: null, name: 'Zateplení fasády', quantity: 120, unit: 'm²', unitPrice: 950, note: 'Včetně lepení a kotvení' },
+      // === OSTATNÍ ===
+      { id: 'l30', type: 'other', materialId: null, name: 'Doprava materiálu', quantity: 1, unit: 'kpl', unitPrice: 35000, note: '' },
+      { id: 'l31', type: 'other', materialId: null, name: 'Lešení a stavební zařízení', quantity: 1, unit: 'kpl', unitPrice: 45000, note: '' },
+    ],
+  },
+  // Approved quote — already became a project (Bartoš Klánovice)
+  {
+    id: 'q_bartos_001',
+    number: 'NAB-2025-008',
+    title: 'RD Bartoš — Klánovice (les)',
+    clientId: 'cli_bartos',
+    address: 'Slavětínská 38, 190 14 Praha-Klánovice',
+    description: 'Dřevostavba 3+kk se speciální základovou deskou bez výkopu pro ochranu kořenů.',
+    type: 'novostavba',
+    status: 'approved',
+    createdAt: '2025-03-15',
+    sentDate: '2025-03-18',
+    decidedDate: '2025-04-02',
+    validUntil: '2025-04-30',
+    marginPercent: 20,
+    laborMarginPercent: 0,
+    note: 'Schváleno ve verzi V2 po úpravě stropní konstrukce.',
+    projectId: 'prj_bartos_klanovice',
+    lines: [
+      { id: 'b1', type: 'material', materialId: 'mat_kvh_100', name: 'KVH hranol 100×100 × 4 m', quantity: 80, unit: 'ks', unitPrice: 900, note: 'Konstrukce' },
+      { id: 'b2', type: 'material', materialId: 'mat_osb_22', name: 'OSB/3 deska 22 mm', quantity: 45, unit: 'ks', unitPrice: 494, note: 'Podlaha' },
+      { id: 'b3', type: 'material', materialId: 'mat_osb_15', name: 'OSB/3 deska 15 mm', quantity: 60, unit: 'ks', unitPrice: 358, note: 'Stěny' },
+      { id: 'b4', type: 'material', materialId: 'mat_nat_18', name: 'KNAUF Naturoll 039 Pro 18 cm', quantity: 16, unit: 'bal', unitPrice: 1060, note: 'Tepelná izolace' },
+      { id: 'b20', type: 'work', materialId: null, name: 'Speciální základová deska', quantity: 1, unit: 'kpl', unitPrice: 320000, note: 'Bez výkopu pro ochranu kořenů' },
+      { id: 'b21', type: 'work', materialId: null, name: 'Dřevěná konstrukce', quantity: 110, unit: 'm²', unitPrice: 2800, note: '' },
+      { id: 'b22', type: 'work', materialId: null, name: 'Střecha + krytina', quantity: 1, unit: 'kpl', unitPrice: 380000, note: '' },
+      { id: 'b30', type: 'other', materialId: null, name: 'Doprava materiálu', quantity: 1, unit: 'kpl', unitPrice: 25000, note: '' },
+    ],
+  },
+  // Draft — secretary still working on it
+  {
+    id: 'q_kralova_002',
+    number: 'NAB-2026-002',
+    title: 'Rekonstrukce koupelny — Králová Vinoř',
+    clientId: 'cli_kralova',
+    address: 'Ke Kbelům 5, 190 17 Praha-Vinoř',
+    description: 'Doplňková nabídka rekonstrukce koupelny v rámci probíhajícího projektu.',
+    type: 'rekonstrukce',
+    status: 'draft',
+    createdAt: '2026-04-28',
+    sentDate: null,
+    decidedDate: null,
+    validUntil: '2026-05-30',
+    marginPercent: 22,
+    laborMarginPercent: 0,
+    note: 'Připravujeme — čekáme na specifikaci obkladů od klientky.',
+    lines: [
+      { id: 'k1', type: 'material', materialId: 'mat_lep_kp_5', name: 'Tekutá lepenka KOUPELNA 5 kg', quantity: 4, unit: 'ks', unitPrice: 529, note: '' },
+      { id: 'k2', type: 'material', materialId: 'mat_kn_flex25', name: 'KNAUF Flexkleber C2TE S1 25 kg', quantity: 6, unit: 'ks', unitPrice: 342, note: 'Lepidlo na obklady' },
+      { id: 'k3', type: 'material', materialId: 'mat_kn_fugen5', name: 'KNAUF spárovací hmota 5 kg', quantity: 3, unit: 'ks', unitPrice: 151, note: '' },
+      { id: 'k20', type: 'work', materialId: null, name: 'Demontáž stávající koupelny', quantity: 1, unit: 'kpl', unitPrice: 28000, note: '' },
+      { id: 'k21', type: 'work', materialId: null, name: 'Obklady a dlažba — práce', quantity: 18, unit: 'm²', unitPrice: 850, note: '' },
+    ],
+  },
+  // Pending quote for Pavel Novák — extension on top of his existing project
+  // Showcases the client-portal approval flow during demo
+  {
+    id: 'q_novak_garaz',
+    number: 'NAB-2026-003',
+    title: 'Doplnění — zděná garáž k RD Novákovi',
+    clientId: 'cli_novak',
+    address: 'Mladoboleslavská 220, 190 17 Praha-Vinoř',
+    description: 'Doplňková nabídka: zděná garáž 6 × 3,5 m s plochou střechou, napojená na hlavní stavbu.\n\nKonstrukce z Porotherm 30, plochá střecha s tepelnou izolací, omítky v souladu s hlavním domem.',
+    type: 'novostavba',
+    status: 'sent',
+    createdAt: '2026-04-26',
+    sentDate: '2026-04-28',
+    decidedDate: null,
+    validUntil: '2026-05-28',
+    marginPercent: 17,
+    laborMarginPercent: 0,
+    note: 'Cena nezahrnuje vrata garáže (vyberete si dle preference). Termín realizace: 6 týdnů od odsouhlasení.',
+    lines: [
+      { id: 'g1', type: 'material', materialId: 'mat_pt_30_p15', name: 'Porotherm 30 Profi P15', quantity: 80, unit: 'ks', unitPrice: 112, note: 'Obvodové zdivo' },
+      { id: 'g2', type: 'material', materialId: 'mat_zelezo_10', name: 'Betonářská žebírková ocel 10 mm', quantity: 280, unit: 'bm', unitPrice: 17, note: 'Věnec' },
+      { id: 'g3', type: 'material', materialId: 'mat_kari_kh20', name: 'KARI síť 6×6 mm, oka 15 cm', quantity: 7, unit: 'ks', unitPrice: 543, note: 'Podkladní deska' },
+      { id: 'g4', type: 'material', materialId: 'mat_eps_70f_15', name: 'EPS 70 F fasádní 15 cm', quantity: 38, unit: 'ks', unitPrice: 175, note: 'Zateplení' },
+      { id: 'g5', type: 'material', materialId: 'mat_cement_bm325', name: 'Cement II / B-M 32,5 R 25 kg', quantity: 24, unit: 'ks', unitPrice: 132, note: '' },
+      { id: 'g6', type: 'material', materialId: 'mat_pt_kp7_300', name: 'Porotherm KP 7 překlad 300 cm', quantity: 1, unit: 'ks', unitPrice: 1684, note: 'Vjezd pro vrata' },
+      { id: 'g20', type: 'work', materialId: null, name: 'Základová deska a zemní práce', quantity: 1, unit: 'kpl', unitPrice: 78000, note: '' },
+      { id: 'g21', type: 'work', materialId: null, name: 'Hrubá stavba — zdění', quantity: 21, unit: 'm²', unitPrice: 1450, note: '' },
+      { id: 'g22', type: 'work', materialId: null, name: 'Plochá střecha', quantity: 21, unit: 'm²', unitPrice: 2200, note: 'Včetně izolace' },
+      { id: 'g23', type: 'work', materialId: null, name: 'Omítky a zateplení fasády', quantity: 65, unit: 'm²', unitPrice: 920, note: '' },
+      { id: 'g24', type: 'work', materialId: null, name: 'Podlaha — beton + epoxid', quantity: 21, unit: 'm²', unitPrice: 850, note: '' },
+      { id: 'g30', type: 'other', materialId: null, name: 'Doprava materiálu', quantity: 1, unit: 'kpl', unitPrice: 12000, note: '' },
+    ],
+  },
+];
 export const initialUsers = [
   { id: 'usr_owner',   name: 'Petr Venclík',   role: 'owner',     email: 'petr@stavira.cz',     pin: '1111' },
   { id: 'usr_manager', name: 'Martin Kovář',   role: 'manager',   email: 'martin@stavira.cz',   pin: '2222' },
