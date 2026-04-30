@@ -6,10 +6,10 @@ import { ROLE_LABELS } from '../data/seed';
 import { classNames } from '../utils/format';
 
 const ROLE_CARD = {
-  owner:      { tag: 'Plný přístup',       desc: 'Přehled financí, projektů a týmu.' },
-  manager:    { tag: 'Provoz na stavbě',   desc: 'Etapy, docházka, deník, materiál.' },
-  accountant: { tag: 'Fakturace a rozpočty', desc: 'Faktury, náklady, reporty.' },
-  client:     { tag: 'Klientský portál',   desc: 'Stav projektu, fotodeník, faktury.' },
+  owner:      { tag: 'Plný přístup',         desc: 'Přehled financí, projektů a stavby.' },
+  manager:    { tag: 'Stavbyvedoucí',         desc: 'Co je dnes na stavbě, deník, vícepráce.' },
+  accountant: { tag: 'Fakturace a rozpočty',  desc: 'Faktury, náklady, reporty.' },
+  client:     { tag: 'Klient',                desc: 'Stav vaší stavby, schvalování, faktury.' },
 };
 
 export default function LoginPage() {

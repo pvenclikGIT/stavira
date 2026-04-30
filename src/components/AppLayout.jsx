@@ -1,8 +1,8 @@
 import { useState } from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
 import {
-  LayoutDashboard, FolderKanban, Users, LogOut, Menu, X,
-  ChevronDown, RotateCcw,
+  LayoutDashboard, FolderKanban, Users, LogOut,
+  Sun, BookOpen, ChevronDown, RotateCcw, MoreHorizontal,
 } from 'lucide-react';
 import Logo from './Logo';
 import { useApp } from '../context/AppContext';
@@ -10,29 +10,118 @@ import { ROLE_LABELS } from '../data/seed';
 import { classNames } from '../utils/format';
 import ConfirmDialog from './ConfirmDialog';
 
-const NAV = [
-  { to: '/',         label: 'Dashboard', icon: LayoutDashboard, end: true },
-  { to: '/projekty', label: 'Projekty',  icon: FolderKanban },
-  { to: '/klienti',  label: 'Klienti',   icon: Users },
-];
+// Build navigation depending on role
+function buildNav(role) {
+  // Owner / accountant — full access, "Dnes" first as it's most-used daily
+  if (role === 'owner' || role === 'accountant') {
+    return [
+      { to: '/',         label: 'Dnes',      icon: Sun, end: true },
+      { to: '/projekty', label: 'Projekty',  icon: FolderKanban },
+      { to: '/dashboard', label: 'Přehled',  icon: LayoutDashboard },
+      { to: '/klienti',  label: 'Klienti',   icon: Users },
+    ];
+  }
+  // Manager (stavbyvedoucí) — daily focus, no clients
+  if (role === 'manager') {
+    return [
+      { to: '/',          label: 'Dnes',     icon: Sun, end: true },
+      { to: '/projekty',  label: 'Stavby',   icon: FolderKanban },
+      { to: '/denik',     label: 'Deník',    icon: BookOpen },
+    ];
+  }
+  // Client — only sees their own thing
+  return [
+    { to: '/',         label: 'Moje stavba', icon: FolderKanban, end: true },
+  ];
+}
 
 export default function AppLayout({ children }) {
-  const [mobileOpen, setMobileOpen] = useState(false);
-  const [userMenuOpen, setUserMenuOpen] = useState(false);
   const { currentUser, logout } = useApp();
   const location = useLocation();
+  const navItems = buildNav(currentUser?.role);
 
-  // Close mobile menu on route change
-  const closeMobile = () => setMobileOpen(false);
+  return (
+    <div className="min-h-screen bg-ink-50">
+      {/* ===== Desktop sidebar (≥lg) ===== */}
+      <aside className="hidden lg:flex fixed inset-y-0 left-0 w-64 bg-ink-950 flex-col z-30">
+        <div className="px-5 py-6 border-b border-ink-800">
+          <Logo size="md" mono />
+        </div>
+        <div className="flex-1 px-3 py-4 overflow-y-auto scroll-thin">
+          <p className="px-3 mb-2 text-[10px] uppercase tracking-[0.18em] font-bold text-ink-500">
+            {currentUser?.role === 'client' ? 'Moje' : 'Hlavní'}
+          </p>
+          <DesktopNav items={navItems} />
+        </div>
+        <div className="p-3 border-t border-ink-800">
+          <UserBlock currentUser={currentUser} onLogout={logout} />
+        </div>
+      </aside>
 
-  const NavItems = ({ onClick }) => (
+      {/* ===== Mobile header — minimal, just brand + user avatar ===== */}
+      <header className="lg:hidden sticky top-0 z-30 bg-ink-950 text-white">
+        <div className="flex items-center justify-between px-4 h-14">
+          <Logo size="sm" mono />
+          {currentUser && <MobileUserMenu currentUser={currentUser} onLogout={logout} />}
+        </div>
+      </header>
+
+      {/* ===== Main content ===== */}
+      <main className="lg:pl-64 min-h-screen pb-bottom-nav lg:pb-0">
+        <div key={location.pathname} className="fade-up">
+          {children}
+        </div>
+      </main>
+
+      {/* ===== Mobile bottom navigation ===== */}
+      <nav className="lg:hidden fixed bottom-0 inset-x-0 z-30 bg-white border-t border-ink-200 safe-bottom">
+        <div className="flex items-stretch">
+          {navItems.map((item) => (
+            <NavLink
+              key={item.to}
+              to={item.to}
+              end={item.end}
+              className={({ isActive }) => classNames(
+                'nav-tab',
+                isActive && 'text-ink-900'
+              )}
+            >
+              {({ isActive }) => (
+                <>
+                  <item.icon
+                    className={classNames(
+                      'w-6 h-6 transition-transform',
+                      isActive && 'scale-110'
+                    )}
+                    strokeWidth={isActive ? 2.4 : 1.8}
+                  />
+                  <span className={classNames(
+                    'text-[11px] font-semibold',
+                    isActive ? 'text-ink-900' : 'text-ink-500'
+                  )}>
+                    {item.label}
+                  </span>
+                  {isActive && (
+                    <span className="absolute top-0 left-1/2 -translate-x-1/2 w-8 h-0.5 bg-accent-400 rounded-full" />
+                  )}
+                </>
+              )}
+            </NavLink>
+          ))}
+        </div>
+      </nav>
+    </div>
+  );
+}
+
+function DesktopNav({ items }) {
+  return (
     <nav className="flex flex-col gap-0.5">
-      {NAV.map((item) => (
+      {items.map((item) => (
         <NavLink
           key={item.to}
           to={item.to}
           end={item.end}
-          onClick={onClick}
           className={({ isActive }) =>
             classNames(
               'flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-semibold transition-colors',
@@ -48,79 +137,64 @@ export default function AppLayout({ children }) {
       ))}
     </nav>
   );
+}
+
+function MobileUserMenu({ currentUser, onLogout }) {
+  const [open, setOpen] = useState(false);
+  const [resetOpen, setResetOpen] = useState(false);
+  const { resetAllData } = useApp();
 
   return (
-    <div className="min-h-screen bg-ink-50">
-      {/* ===== Desktop sidebar ===== */}
-      <aside className="hidden lg:flex fixed inset-y-0 left-0 w-64 bg-ink-950 flex-col z-30">
-        <div className="px-5 py-6 border-b border-ink-800">
-          <Logo size="md" mono />
+    <>
+      <button
+        type="button"
+        onClick={() => setOpen(!open)}
+        aria-label="Uživatelské menu"
+        className="flex items-center gap-2 p-1.5 rounded-lg hover:bg-ink-800 active:bg-ink-700"
+      >
+        <div className="w-9 h-9 rounded-lg bg-accent-400 text-ink-900 flex items-center justify-center font-bold text-sm">
+          {currentUser.name.split(' ').map(n => n[0]).slice(0,2).join('')}
         </div>
-        <div className="flex-1 px-3 py-4 overflow-y-auto scroll-thin">
-          <p className="px-3 mb-2 text-[10px] uppercase tracking-[0.18em] font-bold text-ink-500">
-            Hlavní
-          </p>
-          <NavItems />
-        </div>
-        <div className="p-3 border-t border-ink-800">
-          <UserBlock currentUser={currentUser} onLogout={logout} />
-        </div>
-      </aside>
+      </button>
 
-      {/* ===== Mobile header ===== */}
-      <header className="lg:hidden sticky top-0 z-30 bg-ink-950 text-white">
-        <div className="flex items-center justify-between px-4 h-14">
-          <Logo size="sm" mono />
-          <button
-            type="button"
-            onClick={() => setMobileOpen(true)}
-            aria-label="Otevřít menu"
-            className="p-2 -mr-2 rounded-lg hover:bg-ink-800 active:bg-ink-700"
-          >
-            <Menu className="w-5 h-5" />
-          </button>
-        </div>
-      </header>
-
-      {/* ===== Mobile drawer ===== */}
-      {mobileOpen && (
-        <div className="lg:hidden fixed inset-0 z-40 flex" onClick={closeMobile}>
-          <div className="absolute inset-0 bg-ink-950/60 backdrop-blur-sm" />
-          <aside
-            className="relative w-72 max-w-[85vw] ml-auto bg-ink-950 flex flex-col fade-up"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="flex items-center justify-between px-5 py-5 border-b border-ink-800">
-              <Logo size="sm" mono />
-              <button
-                type="button"
-                onClick={closeMobile}
-                aria-label="Zavřít menu"
-                className="p-2 rounded-lg text-ink-300 hover:text-white hover:bg-ink-800"
-              >
-                <X className="w-5 h-5" />
-              </button>
+      {open && (
+        <>
+          <div className="fixed inset-0 z-40" onClick={() => setOpen(false)} />
+          <div className="absolute right-2 top-14 mt-1 w-64 bg-white rounded-xl shadow-pop border border-ink-200 overflow-hidden z-50">
+            <div className="p-3 border-b border-ink-100">
+              <p className="font-semibold text-ink-900">{currentUser.name}</p>
+              <p className="text-xs text-ink-500 mt-0.5">{ROLE_LABELS[currentUser.role]}</p>
             </div>
-            <div className="flex-1 px-3 py-4 overflow-y-auto">
-              <p className="px-3 mb-2 text-[10px] uppercase tracking-[0.18em] font-bold text-ink-500">
-                Hlavní
-              </p>
-              <NavItems onClick={closeMobile} />
-            </div>
-            <div className="p-3 border-t border-ink-800 safe-bottom">
-              <UserBlock currentUser={currentUser} onLogout={() => { logout(); closeMobile(); }} />
-            </div>
-          </aside>
-        </div>
+            <button
+              type="button"
+              onClick={() => { setResetOpen(true); setOpen(false); }}
+              className="w-full flex items-center gap-3 px-4 py-3 text-sm font-semibold text-ink-700 hover:bg-ink-50 active:bg-ink-100 border-b border-ink-100"
+            >
+              <RotateCcw className="w-4 h-4" />
+              Obnovit demo data
+            </button>
+            <button
+              type="button"
+              onClick={() => { onLogout(); setOpen(false); }}
+              className="w-full flex items-center gap-3 px-4 py-3 text-sm font-semibold text-red-600 hover:bg-red-50 active:bg-red-100"
+            >
+              <LogOut className="w-4 h-4" />
+              Odhlásit se
+            </button>
+          </div>
+        </>
       )}
 
-      {/* ===== Main content ===== */}
-      <main className="lg:pl-64 min-h-screen">
-        <div key={location.pathname} className="fade-up">
-          {children}
-        </div>
-      </main>
-    </div>
+      <ConfirmDialog
+        open={resetOpen}
+        onClose={() => setResetOpen(false)}
+        onConfirm={resetAllData}
+        title="Obnovit demo data?"
+        description="Všechny změny budou nahrazeny původními demo daty. Tuto akci nelze vrátit zpět."
+        confirmLabel="Obnovit"
+        danger
+      />
+    </>
   );
 }
 
@@ -176,8 +250,8 @@ function UserBlock({ currentUser, onLogout }) {
         onClose={() => setResetOpen(false)}
         onConfirm={resetAllData}
         title="Obnovit demo data?"
-        description="Všechny změny — projekty, klienti — budou nahrazeny původními demo daty. Tuto akci nelze vrátit zpět."
-        confirmLabel="Obnovit data"
+        description="Všechny změny budou nahrazeny původními demo daty. Tuto akci nelze vrátit zpět."
+        confirmLabel="Obnovit"
         danger
       />
     </div>

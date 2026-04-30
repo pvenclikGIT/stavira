@@ -1,14 +1,12 @@
 import { useState, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import {
-  Plus, Search, FolderKanban, MapPin, Calendar, Wallet,
-  ArrowUpRight, Filter,
+  Plus, Search, FolderKanban, MapPin, Calendar,
+  ArrowUpRight, Building2, Hammer,
 } from 'lucide-react';
 import { useApp } from '../context/AppContext';
-import { PROJECT_STATUSES } from '../data/seed';
-import {
-  formatCZK, formatDate, daysFromNow, classNames,
-} from '../utils/format';
+import { PROJECT_STATUSES, PROJECT_TYPES } from '../data/seed';
+import { formatCZK, formatDate, daysFromNow, classNames } from '../utils/format';
 import PageHeader from '../components/PageHeader';
 import Badge from '../components/Badge';
 import ProgressBar from '../components/ProgressBar';
@@ -19,12 +17,14 @@ export default function Projects() {
   const { projects, clients } = useApp();
   const [search, setSearch] = useState('');
   const [status, setStatus] = useState('all');
+  const [type, setType] = useState('all');
   const [showForm, setShowForm] = useState(false);
 
   const filtered = useMemo(() => {
     const q = search.toLowerCase().trim();
     return projects.filter((p) => {
       if (status !== 'all' && p.status !== status) return false;
+      if (type !== 'all' && p.type !== type) return false;
       if (!q) return true;
       const client = clients.find((c) => c.id === p.clientId);
       const haystack = [
@@ -32,12 +32,15 @@ export default function Projects() {
       ].filter(Boolean).join(' ').toLowerCase();
       return haystack.includes(q);
     });
-  }, [projects, clients, search, status]);
+  }, [projects, clients, search, status, type]);
 
   const counts = useMemo(() => {
     const c = { all: projects.length };
     Object.keys(PROJECT_STATUSES).forEach((key) => {
       c[key] = projects.filter((p) => p.status === key).length;
+    });
+    Object.keys(PROJECT_TYPES).forEach((key) => {
+      c[`type_${key}`] = projects.filter((p) => p.type === key).length;
     });
     return c;
   }, [projects]);
@@ -60,34 +63,60 @@ export default function Projects() {
       />
 
       <div className="px-4 md:px-8 py-6 max-w-7xl mx-auto">
-        {/* Filter bar */}
-        <div className="flex flex-col gap-3">
-          <div className="relative">
-            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-ink-400 pointer-events-none" />
-            <input
-              type="search"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              placeholder="Hledat podle názvu, kódu, adresy nebo klienta…"
-              className="input pl-10"
-            />
-          </div>
+        {/* Search */}
+        <div className="relative mb-3">
+          <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-ink-400 pointer-events-none" />
+          <input
+            type="search"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Hledat podle názvu, kódu, adresy nebo klienta…"
+            className="input pl-10"
+          />
+        </div>
 
-          <div className="flex items-center gap-2 overflow-x-auto scroll-thin -mx-1 px-1 pb-1">
-            <FilterPill active={status === 'all'} onClick={() => setStatus('all')} count={counts.all}>
-              Vše
+        {/* Type filter */}
+        <div className="flex items-center gap-2 overflow-x-auto scroll-thin -mx-1 px-1 pb-2">
+          <FilterPill active={type === 'all'} onClick={() => setType('all')} count={counts.all}>
+            Vše
+          </FilterPill>
+          <FilterPill
+            active={type === 'novostavba'}
+            onClick={() => setType('novostavba')}
+            count={counts.type_novostavba}
+            icon={Building2}
+          >
+            Novostavby
+          </FilterPill>
+          <FilterPill
+            active={type === 'rekonstrukce'}
+            onClick={() => setType('rekonstrukce')}
+            count={counts.type_rekonstrukce}
+            icon={Hammer}
+          >
+            Rekonstrukce
+          </FilterPill>
+        </div>
+
+        {/* Status filter */}
+        <div className="flex items-center gap-2 overflow-x-auto scroll-thin -mx-1 px-1 pb-1 mt-1">
+          <span className="text-xs font-semibold uppercase tracking-wider text-ink-500 px-1 mr-1">
+            Stav:
+          </span>
+          <FilterPill active={status === 'all'} onClick={() => setStatus('all')} small>
+            Vše
+          </FilterPill>
+          {Object.entries(PROJECT_STATUSES).map(([key, s]) => (
+            <FilterPill
+              key={key}
+              active={status === key}
+              onClick={() => setStatus(key)}
+              count={counts[key] || 0}
+              small
+            >
+              {s.label}
             </FilterPill>
-            {Object.entries(PROJECT_STATUSES).map(([key, s]) => (
-              <FilterPill
-                key={key}
-                active={status === key}
-                onClick={() => setStatus(key)}
-                count={counts[key] || 0}
-              >
-                {s.label}
-              </FilterPill>
-            ))}
-          </div>
+          ))}
         </div>
 
         {/* Result count */}
@@ -103,14 +132,14 @@ export default function Projects() {
           <div className="card">
             <EmptyState
               icon={FolderKanban}
-              title={search || status !== 'all' ? 'Nic nenalezeno' : 'Zatím žádný projekt'}
+              title={search || status !== 'all' || type !== 'all' ? 'Nic nenalezeno' : 'Zatím žádný projekt'}
               description={
-                search || status !== 'all'
+                search || status !== 'all' || type !== 'all'
                   ? 'Zkuste změnit hledaný výraz nebo filtr.'
                   : 'Začněte založením prvního projektu.'
               }
               action={
-                !search && status === 'all' && (
+                !search && status === 'all' && type === 'all' && (
                   <button onClick={() => setShowForm(true)} className="btn btn-primary">
                     <Plus className="w-4 h-4" /> Nový projekt
                   </button>
@@ -132,18 +161,20 @@ export default function Projects() {
   );
 }
 
-function FilterPill({ active, onClick, children, count }) {
+function FilterPill({ active, onClick, children, count, icon: Icon, small = false }) {
   return (
     <button
       type="button"
       onClick={onClick}
       className={classNames(
-        'inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold transition-colors whitespace-nowrap border',
+        'inline-flex items-center gap-1.5 rounded-full font-semibold transition-colors whitespace-nowrap border',
+        small ? 'px-2.5 py-1 text-[11px]' : 'px-3 py-1.5 text-xs',
         active
           ? 'bg-ink-900 text-white border-ink-900'
           : 'bg-white text-ink-700 border-ink-200 hover:bg-ink-50 hover:border-ink-300'
       )}
     >
+      {Icon && <Icon className="w-3.5 h-3.5" />}
       {children}
       {count !== undefined && (
         <span className={classNames(
@@ -160,6 +191,8 @@ function FilterPill({ active, onClick, children, count }) {
 function ProjectCard({ project, clients }) {
   const client = clients.find((c) => c.id === project.clientId);
   const status = PROJECT_STATUSES[project.status];
+  const projectType = PROJECT_TYPES[project.type] || PROJECT_TYPES.novostavba;
+  const TypeIcon = project.type === 'rekonstrukce' ? Hammer : Building2;
   const overBudget = project.actualCost > project.budget;
   const remainingDays = daysFromNow(project.deadline);
   const budgetPct = project.budget > 0 ? (project.actualCost / project.budget) * 100 : 0;
@@ -172,10 +205,11 @@ function ProjectCard({ project, clients }) {
       {/* Header */}
       <div className="flex items-start justify-between gap-3 mb-3">
         <div className="min-w-0 flex-1">
-          <div className="flex items-center gap-2 mb-1.5">
+          <div className="flex items-center gap-2 mb-1.5 flex-wrap">
             <span className="font-mono text-[10px] uppercase tracking-wider text-ink-500 font-semibold">
               {project.code}
             </span>
+            <Badge color={projectType.color} icon={TypeIcon}>{projectType.label}</Badge>
             <Badge color={status?.color || 'slate'}>{status?.label}</Badge>
           </div>
           <h3 className="font-display text-base font-bold text-ink-900 leading-tight line-clamp-2 group-hover:text-ink-700">

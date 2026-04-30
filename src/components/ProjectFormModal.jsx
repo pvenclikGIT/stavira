@@ -1,12 +1,14 @@
 import { useState, useEffect } from 'react';
+import { Building2, Hammer } from 'lucide-react';
 import Modal from './Modal';
 import { useApp } from '../context/AppContext';
-import { PROJECT_STATUSES, DEFAULT_STAGES } from '../data/seed';
-import { generateId, todayISO } from '../utils/format';
+import { PROJECT_STATUSES, PROJECT_TYPES, STAGES_BY_TYPE } from '../data/seed';
+import { generateId, todayISO, classNames } from '../utils/format';
 
 const emptyForm = {
   name: '',
   code: '',
+  type: 'novostavba',
   clientId: '',
   address: '',
   description: '',
@@ -16,10 +18,11 @@ const emptyForm = {
   endDate: '',
   deadline: '',
   siteManager: '',
+  originalCondition: '',
 };
 
 export default function ProjectFormModal({ open, onClose, project, onSaved }) {
-  const { clients, addProject, updateProject } = useApp();
+  const { clients, addProject, updateProject, replaceStagesFromTemplate } = useApp();
   const [form, setForm] = useState(emptyForm);
   const [errors, setErrors] = useState({});
 
@@ -29,6 +32,7 @@ export default function ProjectFormModal({ open, onClose, project, onSaved }) {
         setForm({
           name: project.name || '',
           code: project.code || '',
+          type: project.type || 'novostavba',
           clientId: project.clientId || '',
           address: project.address || '',
           description: project.description || '',
@@ -38,6 +42,7 @@ export default function ProjectFormModal({ open, onClose, project, onSaved }) {
           endDate: project.endDate || '',
           deadline: project.deadline || '',
           siteManager: project.siteManager || '',
+          originalCondition: project.originalCondition || '',
         });
       } else {
         const nextCode = `${new Date().getFullYear()}-${String(Math.floor(Math.random() * 900) + 100)}`;
@@ -65,6 +70,8 @@ export default function ProjectFormModal({ open, onClose, project, onSaved }) {
     return Object.keys(e).length === 0;
   };
 
+  const typeChanged = project && project.type !== form.type;
+
   const handleSubmit = (ev) => {
     ev.preventDefault();
     if (!validate()) return;
@@ -77,18 +84,19 @@ export default function ProjectFormModal({ open, onClose, project, onSaved }) {
 
     if (project) {
       updateProject(project.id, data);
+      // If type changed, regenerate stages from new template
+      if (typeChanged) replaceStagesFromTemplate(project.id, form.type);
       onSaved?.(project.id);
     } else {
-      // Auto-generate empty stages
-      const stages = DEFAULT_STAGES.map((s) => ({
+      const template = STAGES_BY_TYPE[form.type] || [];
+      const stages = template.map((s, i) => ({
         id: generateId('stg'),
         key: s.key,
         label: s.label,
-        startDate: '',
-        endDate: '',
-        progress: 0,
-        budget: 0,
-        actualCost: 0,
+        description: s.description,
+        order: i,
+        startDate: '', endDate: '',
+        progress: 0, budget: 0, actualCost: 0,
       }));
       const created = addProject({ ...data, stages, progress: 0, actualCost: 0 });
       onSaved?.(created.id);
@@ -113,12 +121,55 @@ export default function ProjectFormModal({ open, onClose, project, onSaved }) {
       }
     >
       <form id="project-form" onSubmit={handleSubmit} className="space-y-5">
+        {/* Type selector */}
+        <div>
+          <p className="label">Typ projektu *</p>
+          <div className="grid grid-cols-2 gap-2">
+            {Object.entries(PROJECT_TYPES).map(([key, t]) => {
+              const active = form.type === key;
+              const Icon = key === 'novostavba' ? Building2 : Hammer;
+              return (
+                <button
+                  key={key}
+                  type="button"
+                  onClick={() => handleChange('type', key)}
+                  className={classNames(
+                    'flex items-center gap-3 p-3.5 rounded-lg border-2 transition-all text-left',
+                    active
+                      ? 'border-ink-900 bg-ink-50 shadow-card'
+                      : 'border-ink-200 hover:border-ink-300 bg-white'
+                  )}
+                >
+                  <div className={classNames(
+                    'w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0',
+                    active ? 'bg-ink-900 text-accent-400' : 'bg-ink-100 text-ink-600'
+                  )}>
+                    <Icon className="w-4 h-4" />
+                  </div>
+                  <div className="min-w-0">
+                    <p className={classNames('font-semibold text-sm', active ? 'text-ink-900' : 'text-ink-700')}>
+                      {t.label}
+                    </p>
+                    <p className="text-xs text-ink-500 truncate">
+                      {key === 'novostavba' ? 'Stavba od základů' : 'Úpravy stávajícího objektu'}
+                    </p>
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+          {typeChanged && (
+            <p className="mt-2 text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">
+              ⚠ Změnou typu se přepíší etapy projektu šablonou pro {PROJECT_TYPES[form.type].label.toLowerCase()}.
+            </p>
+          )}
+        </div>
+
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div className="md:col-span-2">
             <label htmlFor="name" className="label">Název projektu *</label>
             <input
-              id="name"
-              type="text"
+              id="name" type="text"
               className={`input ${errors.name ? 'input-error' : ''}`}
               value={form.name}
               onChange={(e) => handleChange('name', e.target.value)}
@@ -129,9 +180,7 @@ export default function ProjectFormModal({ open, onClose, project, onSaved }) {
           <div>
             <label htmlFor="code" className="label">Kód</label>
             <input
-              id="code"
-              type="text"
-              className="input font-mono"
+              id="code" type="text" className="input font-mono"
               value={form.code}
               onChange={(e) => handleChange('code', e.target.value)}
               placeholder="2025-001"
@@ -160,8 +209,7 @@ export default function ProjectFormModal({ open, onClose, project, onSaved }) {
           <div>
             <label htmlFor="status" className="label">Stav</label>
             <select
-              id="status"
-              className="input"
+              id="status" className="input"
               value={form.status}
               onChange={(e) => handleChange('status', e.target.value)}
             >
@@ -175,8 +223,7 @@ export default function ProjectFormModal({ open, onClose, project, onSaved }) {
         <div>
           <label htmlFor="address" className="label">Adresa stavby *</label>
           <input
-            id="address"
-            type="text"
+            id="address" type="text"
             className={`input ${errors.address ? 'input-error' : ''}`}
             value={form.address}
             onChange={(e) => handleChange('address', e.target.value)}
@@ -188,23 +235,33 @@ export default function ProjectFormModal({ open, onClose, project, onSaved }) {
         <div>
           <label htmlFor="description" className="label">Popis</label>
           <textarea
-            id="description"
-            rows={3}
-            className="input resize-y"
+            id="description" rows={3} className="input resize-y"
             value={form.description}
             onChange={(e) => handleChange('description', e.target.value)}
             placeholder="Stručný popis stavby, plocha, materiály…"
           />
         </div>
 
+        {form.type === 'rekonstrukce' && (
+          <div>
+            <label htmlFor="originalCondition" className="label">Stav původního objektu</label>
+            <textarea
+              id="originalCondition" rows={3} className="input resize-y"
+              value={form.originalCondition}
+              onChange={(e) => handleChange('originalCondition', e.target.value)}
+              placeholder="Rok stavby, materiál zdiva, stav rozvodů, problémy zjištěné při prohlídce…"
+            />
+            <p className="mt-1 text-xs text-ink-500">
+              Důležitá poznámka pro stavbyvedoucího. Pomáhá identifikovat skryté vady.
+            </p>
+          </div>
+        )}
+
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
             <label htmlFor="budget" className="label">Rozpočet (Kč) *</label>
             <input
-              id="budget"
-              type="number"
-              min="0"
-              step="10000"
+              id="budget" type="number" min="0" step="10000"
               className={`input font-mono tabular-nums ${errors.budget ? 'input-error' : ''}`}
               value={form.budget}
               onChange={(e) => handleChange('budget', e.target.value)}
@@ -215,9 +272,7 @@ export default function ProjectFormModal({ open, onClose, project, onSaved }) {
           <div>
             <label htmlFor="siteManager" className="label">Stavbyvedoucí</label>
             <input
-              id="siteManager"
-              type="text"
-              className="input"
+              id="siteManager" type="text" className="input"
               value={form.siteManager}
               onChange={(e) => handleChange('siteManager', e.target.value)}
               placeholder="Jméno a příjmení"
@@ -229,9 +284,7 @@ export default function ProjectFormModal({ open, onClose, project, onSaved }) {
           <div>
             <label htmlFor="startDate" className="label">Začátek</label>
             <input
-              id="startDate"
-              type="date"
-              className="input"
+              id="startDate" type="date" className="input"
               value={form.startDate}
               onChange={(e) => handleChange('startDate', e.target.value)}
             />
@@ -239,8 +292,7 @@ export default function ProjectFormModal({ open, onClose, project, onSaved }) {
           <div>
             <label htmlFor="endDate" className="label">Konec</label>
             <input
-              id="endDate"
-              type="date"
+              id="endDate" type="date"
               className={`input ${errors.endDate ? 'input-error' : ''}`}
               value={form.endDate}
               onChange={(e) => handleChange('endDate', e.target.value)}
@@ -250,9 +302,7 @@ export default function ProjectFormModal({ open, onClose, project, onSaved }) {
           <div>
             <label htmlFor="deadline" className="label">Termín předání</label>
             <input
-              id="deadline"
-              type="date"
-              className="input"
+              id="deadline" type="date" className="input"
               value={form.deadline}
               onChange={(e) => handleChange('deadline', e.target.value)}
             />

@@ -2,21 +2,40 @@ import { HashRouter, Routes, Route, Navigate, Link } from 'react-router-dom';
 import { AppProvider, useApp } from './context/AppContext';
 import AppLayout from './components/AppLayout';
 import LoginPage from './pages/LoginPage';
+import Today from './pages/Today';
 import Dashboard from './pages/Dashboard';
+import DiaryPage from './pages/DiaryPage';
 import Projects from './pages/Projects';
 import ProjectDetail from './pages/ProjectDetail';
 import Clients from './pages/Clients';
 import ClientDetail from './pages/ClientDetail';
+import ClientHome from './pages/ClientHome';
 import EmptyState from './components/EmptyState';
 import { Compass } from 'lucide-react';
 
 function ProtectedShell() {
-  const { currentUser } = useApp();
+  const { currentUser, isClient } = useApp();
   if (!currentUser) return <Navigate to="/login" replace />;
+
+  // Client gets a totally different home — read-only, simplified
+  if (isClient) {
+    return (
+      <AppLayout>
+        <Routes>
+          <Route path="/" element={<ClientHome />} />
+          <Route path="/projekty/:id" element={<ProjectDetail />} />
+          <Route path="*" element={<Navigate to="/" replace />} />
+        </Routes>
+      </AppLayout>
+    );
+  }
+
   return (
     <AppLayout>
       <Routes>
-        <Route path="/" element={<Dashboard />} />
+        <Route path="/" element={<Today />} />
+        <Route path="/dashboard" element={<Dashboard />} />
+        <Route path="/denik" element={<DiaryPage />} />
         <Route path="/projekty" element={<Projects />} />
         <Route path="/projekty/:id" element={<ProjectDetail />} />
         <Route path="/klienti" element={<Clients />} />
@@ -31,7 +50,7 @@ function ProtectedShell() {
                 description="Tato stránka neexistuje nebo byla přesunuta."
                 action={
                   <Link to="/" className="btn btn-primary">
-                    Zpět na Dashboard
+                    Zpět na úvod
                   </Link>
                 }
               />

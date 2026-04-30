@@ -11,6 +11,12 @@
   body {
     @apply font-sans text-ink-900 bg-ink-50 antialiased;
     font-feature-settings: 'cv11', 'ss01';
+    /* Slightly larger base for touch readability */
+    font-size: 15px;
+  }
+  /* Inputs always 16px to prevent iOS zoom on focus */
+  input, select, textarea {
+    font-size: 16px;
   }
   *:focus-visible {
     @apply outline-none ring-2 ring-accent-400 ring-offset-2 ring-offset-white;
@@ -21,12 +27,23 @@
 }
 
 @layer components {
+  /* Default buttons — touch friendly */
   .btn {
-    @apply inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg
+    @apply inline-flex items-center justify-center gap-2 px-4 py-3 rounded-lg
            text-sm font-semibold transition-all duration-150
            disabled:opacity-50 disabled:cursor-not-allowed
            active:scale-[0.98];
-    min-height: 40px;
+    min-height: 44px;
+  }
+  /* Larger button for primary mobile CTAs (e.g. "Foto", "Zápis") */
+  .btn-lg {
+    @apply px-5 py-4 text-base rounded-xl;
+    min-height: 56px;
+  }
+  /* Compact button — used in densely packed toolbars on desktop */
+  .btn-sm {
+    @apply px-3 py-2 text-xs rounded-lg;
+    min-height: 36px;
   }
   .btn-primary {
     @apply bg-ink-900 text-white hover:bg-ink-800 shadow-card hover:shadow-card-hover;
@@ -45,18 +62,18 @@
   }
 
   .input {
-    @apply w-full px-3.5 py-2.5 rounded-lg border border-ink-200 bg-white text-sm text-ink-900
+    @apply w-full px-4 py-3 rounded-lg border border-ink-200 bg-white text-base text-ink-900
            placeholder:text-ink-400
            focus:border-ink-900 focus:ring-2 focus:ring-ink-900/10
            transition-colors;
-    min-height: 40px;
+    min-height: 48px;
   }
   .input-error {
     @apply border-red-400 focus:border-red-500 focus:ring-red-500/10;
   }
 
   .label {
-    @apply block text-xs font-semibold uppercase tracking-wider text-ink-600 mb-1.5;
+    @apply block text-sm font-semibold text-ink-700 mb-1.5;
   }
 
   .card {
@@ -64,7 +81,7 @@
   }
 
   .card-hover {
-    @apply transition-all duration-200 hover:shadow-card-hover hover:border-ink-300;
+    @apply transition-all duration-200 hover:shadow-card-hover hover:border-ink-300 active:scale-[0.99];
   }
 
   .chip {
@@ -77,6 +94,36 @@
 
   .stat-value {
     @apply font-display text-2xl md:text-3xl font-bold text-ink-900 tabular-nums;
+  }
+
+  /* Mobile bottom navigation tab item */
+  .nav-tab {
+    @apply flex flex-col items-center justify-center gap-1 flex-1
+           text-ink-500 transition-colors;
+    min-height: 56px;
+  }
+  .nav-tab[aria-current="page"] {
+    @apply text-ink-900;
+  }
+
+  /* Floating action button — mobile shortcut */
+  .fab {
+    @apply fixed right-4 z-30 flex items-center justify-center
+           rounded-full bg-accent-400 text-ink-900 shadow-lg
+           hover:bg-accent-300 active:scale-95 transition-all
+           font-semibold;
+    width: 60px;
+    height: 60px;
+    bottom: calc(72px + env(safe-area-inset-bottom));
+  }
+
+  /* Quick action — big tappable card with icon */
+  .quick-action {
+    @apply flex flex-col items-center justify-center gap-2 p-4 rounded-2xl
+           bg-white border-2 border-ink-200 text-ink-900
+           hover:border-ink-900 hover:bg-ink-50 active:scale-[0.97]
+           transition-all text-center;
+    min-height: 100px;
   }
 
   /* Scrollbar */
@@ -98,6 +145,10 @@
   }
   .safe-bottom {
     padding-bottom: env(safe-area-inset-bottom);
+  }
+  /* Used for content under the fixed mobile bottom-nav (72px tall) */
+  .pb-bottom-nav {
+    padding-bottom: calc(80px + env(safe-area-inset-bottom));
   }
 }
 
